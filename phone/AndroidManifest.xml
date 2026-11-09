@@ -5,8 +5,8 @@
      foldables too: the grid follows the screen as you fold, unfold or turn it. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mk.phonelauncher"
-    android:versionCode="12"
-    android:versionName="1.7.1">
+    android:versionCode="13"
+    android:versionName="1.8.0">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -36,7 +36,7 @@
         android:hardwareAccelerated="true"
         android:largeHeap="true"
         android:resizeableActivity="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/PhoneTheme">
 
         <meta-data android:name="flavor" android:value="phone" />
 

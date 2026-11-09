@@ -16,7 +16,8 @@ final class Web {
 
     static WebView create(Context context, String page) {
         WebView web = new WebView(context);
-        web.setBackgroundColor(Color.BLACK);
+        // Phone: see-through until the page draws, so the window's wallpaper shows at once.
+        web.setBackgroundColor("phone.html".equals(page) ? Color.TRANSPARENT : Color.BLACK);
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
         web.setOverScrollMode(WebView.OVER_SCROLL_NEVER); // no edge glow when a finger hits the end

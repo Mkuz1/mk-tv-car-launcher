@@ -93,6 +93,8 @@ The matching home screen for your phone, in the same Liquid Glass look, laid out
 - **Prayer**: times for where you are (GPS), a soft silent banner before and at each prayer (also over other apps), Arabic or English (**Edit → Customize** in edit mode).
 - **Smooth**: the Liquid Glass wallpaper is pre-blurred so nothing is blurred live; tiles move with transform only; finger movement is applied once per frame.
 
+Honor, Huawei, Xiaomi and some other brands: with **gesture navigation** the Home animation is drawn by the phone's own launcher, so it shows for a moment before MK Launcher (a limit of those systems for every third-party launcher). Choose **three-button navigation** (Settings → System → System navigation) to go straight to MK Launcher, and in battery / app launch settings set MK Launcher to **manage manually** with background activity allowed, so the system doesn't stop it.
+
 Install: open `mk-phone-launcher.apk` on the phone (allow installing from your browser or file manager) and open it: it asks to be your **Home app** (Android's own dialog, or the Home app settings if the phone has stopped showing it). *Not now* asks again a day later; it's also in **Edit → Customize → Home app**. It's a separate app from the car one, with its own layout. App widgets of other apps (e.g. Gmail's) aren't supported; the widgets are the launcher's own.
 
 ## What you need

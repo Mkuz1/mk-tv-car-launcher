@@ -1,4 +1,6 @@
-### What's new in the car launcher (2.6 – 2.8.2)
+### What's new in the car launcher (2.6 – 2.8.3)
+
+- **2.8.3 / phone 1.8.0:** much faster start: app icons are kept as files instead of being drawn again every time, and the phone launcher shows its wallpaper the moment Home is pressed.
 
 - **2.8.2 / helper 1.3.1:** the Drive screen's map no longer says "No internet" when the car is online, and Now Playing follows the app actually playing (YouTube Music, Spotify…) instead of a phone-link app's empty player.
 

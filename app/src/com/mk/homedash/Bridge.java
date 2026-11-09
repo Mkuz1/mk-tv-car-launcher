@@ -76,6 +76,8 @@ public class Bridge {
     private final boolean car; // car or phone: touch screens with ordinary (non-TV) apps
     private final Handler main = new Handler(Looper.getMainLooper());
     private static final Map<String, String> iconCache = new HashMap<>();
+    /** Bump when icon drawing changes, so cached icon files are made again. */
+    private static final String ICON_VERSION = "3";
 
     private View view;
 
@@ -591,6 +593,27 @@ public class Bridge {
         String key = info.packageName + "/" + info.name;
         String cached = iconCache.get(key);
         if (cached != null) return cached;
+        // Touch screens: icons are kept as files, so a fresh start (or a launcher Android stopped in
+        // the background) shows them at once instead of drawing every icon again; and the page gets
+        // short file links instead of megabytes of picture text.
+        File file = null;
+        if (car) {
+            long stamp = 0;
+            try { stamp = context.getPackageManager().getPackageInfo(info.packageName, 0).lastUpdateTime; } catch (Exception ignored) { }
+            File dir = new File(context.getCacheDir(), "icons");
+            String name = Integer.toHexString((ICON_VERSION + flavor + key).hashCode()) + "-" + Long.toHexString(stamp)
+                    + "-" + Integer.toHexString(key.length());
+            for (String kind : new String[] {"F", "I", "B"}) {
+                File f = new File(dir, name + "-" + kind + ".png");
+                if (f.isFile() && f.length() > 0) {
+                    String hit = kind + "file://" + f.getAbsolutePath();
+                    iconCache.put(key, hit);
+                    return hit;
+                }
+            }
+            dir.mkdirs();
+            file = new File(dir, name);
+        }
         PackageManager pm = context.getPackageManager();
         // TV: the wide banner when there is one. Car: always the square icon (CarPlay style).
         Drawable d = car ? null : info.loadBanner(pm);
@@ -622,7 +645,17 @@ public class Bridge {
             uri = "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
         }
         // B = banner, F = full-bleed square icon, I = any other icon (shown smaller on a tile).
-        String result = (banner ? "B" : adaptive || squared ? "F" : "I") + uri;
+        String kind = banner ? "B" : adaptive || squared ? "F" : "I";
+        String result = kind + uri;
+        if (file != null && uri.startsWith("data:image/png;base64,")) {
+            File f = new File(file.getPath() + "-" + kind + ".png");
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                out.write(Base64.decode(uri.substring(uri.indexOf(',') + 1), Base64.DEFAULT));
+                result = kind + "file://" + f.getAbsolutePath();
+            } catch (Exception e) {
+                f.delete();
+            }
+        }
         iconCache.put(key, result);
         return result;
     }
