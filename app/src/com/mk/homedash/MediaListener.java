@@ -20,12 +20,14 @@ import java.util.List;
  * In the MK Car Helper (helper/): what's playing in any app (YouTube, Spotify, Anghami...), for
  * the car home screen's Now Playing card, and its play / pause / next / previous buttons. Android
  * only shares other apps' media sessions with a notification listener the user has allowed
- * (Settings → Notification access → MK Car Helper). It reads no notifications.
+ * (Settings → Notification access → MK Car Helper). With that access it also lists your
+ * notifications in the car home screen's Control Center (open, dismiss, clear), and nowhere else.
  */
 public class MediaListener extends NotificationListenerService {
 
     static final String LAUNCHER = "com.mk.carlauncher";
     static final String STATE = "com.mk.carlauncher.MEDIA_STATE";
+    static final String NOTIFS = "com.mk.carlauncher.NOTIFS";
 
     static volatile MediaListener instance;
 
@@ -60,6 +62,77 @@ public class MediaListener extends NotificationListenerService {
         } catch (Exception e) {
             msm = null;
         }
+        sendNotifs();
+    }
+
+    /* ---------- notifications, for the launcher's Control Center ---------- */
+
+    @Override public void onNotificationPosted(android.service.notification.StatusBarNotification sbn) { notifsSoon(); }
+    @Override public void onNotificationRemoved(android.service.notification.StatusBarNotification sbn) { notifsSoon(); }
+
+    private final Runnable notifsNow = new Runnable() { @Override public void run() { sendNotifs(); } };
+    private void notifsSoon() {
+        main.removeCallbacks(notifsNow);
+        main.postDelayed(notifsNow, 300);
+    }
+
+    /** The notifications shown (newest first): [{key, pkg, app, title, text, time, clear}]. */
+    void sendNotifs() {
+        org.json.JSONArray list = new org.json.JSONArray();
+        try {
+            android.service.notification.StatusBarNotification[] all = getActiveNotifications();
+            if (all != null) {
+                java.util.Arrays.sort(all, new java.util.Comparator<android.service.notification.StatusBarNotification>() {
+                    @Override public int compare(android.service.notification.StatusBarNotification a, android.service.notification.StatusBarNotification b) {
+                        return Long.compare(b.getPostTime(), a.getPostTime());
+                    }
+                });
+                android.content.pm.PackageManager pm = getPackageManager();
+                for (android.service.notification.StatusBarNotification n : all) {
+                    if (list.length() >= 40) break;
+                    android.app.Notification no = n.getNotification();
+                    if ((no.flags & android.app.Notification.FLAG_GROUP_SUMMARY) != 0) continue;
+                    android.os.Bundle x = no.extras;
+                    CharSequence title = x.getCharSequence(android.app.Notification.EXTRA_TITLE);
+                    CharSequence text = x.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT);
+                    if (text == null) text = x.getCharSequence(android.app.Notification.EXTRA_TEXT);
+                    if ((title == null || title.length() == 0) && (text == null || text.length() == 0)) continue;
+                    org.json.JSONObject o = new org.json.JSONObject();
+                    o.put("key", n.getKey());
+                    o.put("pkg", n.getPackageName());
+                    String app = n.getPackageName();
+                    try { app = pm.getApplicationLabel(pm.getApplicationInfo(app, 0)).toString(); } catch (Exception ignored) { }
+                    o.put("app", app);
+                    o.put("title", title == null ? "" : title.toString());
+                    o.put("text", text == null ? "" : text.toString());
+                    o.put("time", n.getPostTime());
+                    o.put("clear", n.isClearable());
+                    list.put(o);
+                }
+            }
+        } catch (Exception ignored) { }
+        try { sendBroadcast(new Intent(NOTIFS).setPackage(LAUNCHER).putExtra("list", list.toString())); } catch (Exception ignored) { }
+    }
+
+    /** From the launcher: open (key), dismiss (key) or clear all. */
+    void notif(String cmd, String key) {
+        try {
+            if ("nclear".equals(cmd)) { cancelAllNotifications(); return; }
+            if ("ndismiss".equals(cmd)) { cancelNotification(key); return; }
+            if ("nopen".equals(cmd)) {
+                for (android.service.notification.StatusBarNotification n : getActiveNotifications()) {
+                    if (!n.getKey().equals(key)) continue;
+                    android.app.PendingIntent pi = n.getNotification().contentIntent;
+                    if (pi != null) pi.send();
+                    else {
+                        Intent i = getPackageManager().getLaunchIntentForPackage(n.getPackageName());
+                        if (i != null) startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    }
+                    if ((n.getNotification().flags & android.app.Notification.FLAG_AUTO_CANCEL) != 0) cancelNotification(key);
+                    return;
+                }
+            }
+        } catch (Exception ignored) { }
     }
 
     @Override

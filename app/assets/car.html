@@ -168,6 +168,42 @@
       </div>
     </div>
 
+    <!-- Control Center: swipe down from the top of the screen (or tap the handle), like an iPhone -->
+    <button id="ccPull" aria-label="Control Center"></button>
+    <div id="cc">
+      <div class="cc-sheet" id="ccSheet">
+        <section class="cc-notifs glass">
+          <header><span class="cc-h" data-t="notifications"></span><button class="cc-clear" id="ccClear" data-t="clearAll"></button></header>
+          <div class="cc-list" id="ccList"></div>
+        </section>
+        <section class="cc-grid">
+          <div class="cc-tile cc-conn glass">
+            <button class="cc-tg" id="ccWifi" aria-label="Wi-Fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg><span>Wi-Fi</span></button>
+            <button class="cc-tg" id="ccBt" aria-label="Bluetooth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg><span>Bluetooth</span></button>
+            <button class="cc-tg" id="ccCast" aria-label="Cast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M3 12a8 8 0 0 1 8 8M3 16a4 4 0 0 1 4 4"/><circle cx="3.5" cy="19.5" r=".8" fill="currentColor"/></svg><span data-t="cast"></span></button>
+            <button class="cc-tg" id="ccSplit" aria-label="Split screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="4" width="8.5" height="16" rx="2.2"/><rect x="13" y="4" width="8.5" height="16" rx="2.2"/></svg><span data-t="split"></span></button>
+          </div>
+          <div class="cc-tile cc-media glass">
+            <div class="cc-mtext"><div class="cc-mtitle" id="ccMTitle"></div><div class="cc-martist" id="ccMArtist"></div></div>
+            <div class="cc-mctrls">
+              <button data-c="previous" aria-label="Previous"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.4v14H6zM20 5v14L9.5 12z"/></svg></button>
+              <button data-c="toggle" id="ccMPlay" aria-label="Play or pause"></button>
+              <button data-c="next" aria-label="Next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 5H18v14h-2.4zM4 5v14l10.5-7z"/></svg></button>
+            </div>
+          </div>
+          <div class="cc-tile cc-slider glass" id="ccBright" data-k="bright">
+            <i class="cc-fill"></i><svg class="cc-sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
+          </div>
+          <div class="cc-tile cc-slider glass" id="ccVol" data-k="vol">
+            <i class="cc-fill"></i><svg class="cc-sicon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <button class="cc-tile cc-btn glass" id="ccMode"><span class="cc-bicon" id="ccModeIcon"></span><span id="ccModeName"></span></button>
+          <button class="cc-tile cc-btn glass" id="ccSettings"><span class="cc-bicon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.48.48 0 0 0 .12-.61l-1.92-3.32a.48.48 0 0 0-.59-.21l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54a7.36 7.36 0 0 0-1.62.94l-2.39-.96a.48.48 0 0 0-.59.21L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58a7.4 7.4 0 0 0 0 1.88l-2.03 1.58a.48.48 0 0 0-.12.61l1.92 3.32c.12.21.37.3.59.21l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.36 7.36 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.21l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></span><span data-t="settings"></span></button>
+        </section>
+        <div class="cc-grab"></div>
+      </div>
+    </div>
+
     <!-- Cast: no receiver app yet -->
     <div id="castInfo">
       <div class="pk-panel glass solid ci-panel">

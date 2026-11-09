@@ -285,6 +285,93 @@ public class Bridge {
         am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, key));
     }
 
+    /* Car: the Control Center's notifications (from the helper) and quick controls. */
+    static volatile String notifs = "[]";
+
+    @JavascriptInterface
+    public String notifications() {
+        return notifs;
+    }
+
+    /** notifs (ask for the list), nopen / ndismiss (key), nclear: passed to the helper. */
+    @JavascriptInterface
+    public void notifCommand(String cmd, String key) {
+        context.sendBroadcast(new Intent(SplitReceiver.MEDIA).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName())
+                .putExtra("cmd", cmd).putExtra("key", key));
+    }
+
+    /** {wifi, bt (-1: none), volume, maxVolume, brightness 0-1, canWrite}. */
+    @JavascriptInterface
+    public String quickState() {
+        JSONObject o = new JSONObject();
+        try {
+            WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            o.put("wifi", wm != null && wm.isWifiEnabled());
+            android.bluetooth.BluetoothAdapter bt = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            o.put("bt", bt == null ? -1 : bt.isEnabled() ? 1 : 0);
+            android.media.AudioManager am = (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            o.put("volume", am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC));
+            o.put("maxVolume", am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC));
+            int b = Settings.System.getInt(context.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, 128);
+            o.put("brightness", b / 255.0);
+            o.put("canWrite", Settings.System.canWrite(context));
+        } catch (Exception ignored) { }
+        return o.toString();
+    }
+
+    /** Wi-Fi on/off (Android 9 and older); newer Android only allows the Wi-Fi settings panel. */
+    @JavascriptInterface
+    public boolean setWifi(boolean on) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT < 29) {
+                WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                if (wm != null && wm.setWifiEnabled(on)) return true;
+            }
+        } catch (Exception ignored) { }
+        openWifiSettings();
+        return false;
+    }
+
+    /** Bluetooth on/off (Android 11 and older); else its settings. */
+    @JavascriptInterface
+    public boolean setBluetooth(boolean on) {
+        try {
+            android.bluetooth.BluetoothAdapter bt = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            if (bt != null && android.os.Build.VERSION.SDK_INT < 31 && (on ? bt.enable() : bt.disable())) return true;
+        } catch (Exception ignored) { }
+        startFirst(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS), new Intent(Settings.ACTION_SETTINGS));
+        return false;
+    }
+
+    @JavascriptInterface
+    public void setVolume(int v) {
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.max(0, v), 0);
+        } catch (Exception ignored) { }
+    }
+
+    /**
+     * The screen's brightness (0-1) for every app, when the launcher may change system settings;
+     * otherwise false (the page then dims only itself, and can ask for the permission).
+     */
+    @JavascriptInterface
+    public boolean setSystemBrightness(float level) {
+        try {
+            if (!Settings.System.canWrite(context)) return false;
+            Settings.System.putInt(context.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+            Settings.System.putInt(context.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, Math.round(Math.max(0.02f, Math.min(1f, level)) * 255));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public void openWriteSettings() {
+        startFirst(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + context.getPackageName())), new Intent(Settings.ACTION_SETTINGS));
+    }
+
     /** When the last split-screen pair was opened (ms). */
     static volatile long splitLaunchAt = 0;
 

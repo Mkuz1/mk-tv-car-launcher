@@ -31,6 +31,12 @@ public class MainActivity extends Activity {
     // Car: what's playing in any app, from the MK Car Helper (see MediaListener).
     private final BroadcastReceiver media = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
+            if ("com.mk.carlauncher.NOTIFS".equals(i.getAction())) {
+                String list = i.getStringExtra("list");
+                Bridge.notifs = list == null ? "[]" : list;
+                js("window.onNotifs && window.onNotifs()");
+                return;
+            }
             Bridge.mediaState = Bridge.mediaJson(i);
             js("window.onMedia && window.onMedia()");
         }
@@ -48,7 +54,11 @@ public class MainActivity extends Activity {
         registerReceiver(packages, f);
         String flavor = Bridge.flavor(this);
         car = "car".equals(flavor);
-        if (car) registerReceiver(media, new IntentFilter("com.mk.carlauncher.MEDIA_STATE"));
+        if (car) {
+            IntentFilter mf = new IntentFilter("com.mk.carlauncher.MEDIA_STATE");
+            mf.addAction("com.mk.carlauncher.NOTIFS");
+            registerReceiver(media, mf);
+        }
         phone = "phone".equals(flavor);
         // No FLAG_KEEP_SCREEN_ON here: the screensaver must be able to start on top of Home.
         web = Web.create(this, car ? "car.html" : phone ? "phone.html" : "home.html");

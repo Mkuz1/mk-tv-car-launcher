@@ -3,12 +3,13 @@
      Split: apps can't start split screen themselves; once MK Split Screen is on in Settings →
      Accessibility, the launcher asks it to press the system's split-screen action, and to close a
      split left behind after Home. Now Playing: with Notification access on, it tells the launcher
-     what's playing in any app and passes on play / pause / next / previous. Kept out of the launcher
+     what's playing in any app and passes on play / pause / next / previous, and lists your
+     notifications in the launcher's Control Center. Kept out of the launcher
      APK because some head units refuse apps that declare an accessibility service. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mk.splithelper"
-    android:versionCode="2"
-    android:versionName="1.1.0">
+    android:versionCode="3"
+    android:versionName="1.2.0">
 
     <application
         android:label="@string/app_name"

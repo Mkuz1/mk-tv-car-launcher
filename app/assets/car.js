@@ -52,6 +52,10 @@
       castTitle: "Cast from your phone",
       castText: "AirPlay and Google Cast need a receiver app on the head unit: Apple and Google don't let apps like this one receive casts by themselves. Install AirScreen (AirPlay, Google Cast, Miracast and DLNA) and the Cast button opens it. Already have one (ZLink, Autokit, EasyConnection…)? It opens that.",
       castGet: "Get AirScreen",
+      notifications: "Notifications", clearAll: "Clear", cast: "Cast", split: "Split", settings: "Settings",
+      noNotifs: "No notifications", notifHelper: "To see your notifications here, install MK Car Helper (mk-split-helper.apk, 1.2 or later).",
+      notifAccess: "To see your notifications here, allow MK Car Helper in Notification access.", now: "now",
+      ago: (m) => (m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ago`), allowAll: "Brightness for all apps: allow",
     },
     ar: {
       apps: "التطبيقات", moveHint: "اسحب التطبيق أو اضغط حيث تريد نقله", done: "تم",
@@ -84,6 +88,10 @@
       castTitle: "البث من هاتفك",
       castText: "يحتاج AirPlay وGoogle Cast إلى تطبيق استقبال على شاشة السيارة، فلا تسمح Apple وGoogle لتطبيقات مثل هذا بالاستقبال بنفسها. ثبّت AirScreen ‏(AirPlay وGoogle Cast وMiracast وDLNA) وسيفتحه زر البث. إن كان لديك تطبيق آخر (ZLink أو Autokit أو EasyConnection…) فسيفتحه.",
       castGet: "تنزيل AirScreen",
+      notifications: "الإشعارات", clearAll: "مسح", cast: "بث", split: "تقسيم", settings: "الإعدادات",
+      noNotifs: "لا توجد إشعارات", notifHelper: "لعرض إشعاراتك هنا، ثبّت MK Car Helper ‏(mk-split-helper.apk الإصدار 1.2 أو أحدث).",
+      notifAccess: "لعرض إشعاراتك هنا، اسمح لـ MK Car Helper في الوصول إلى الإشعارات.", now: "الآن",
+      ago: (m) => (m < 60 ? `قبل ${m} د` : `قبل ${Math.floor(m / 60)} س`), allowAll: "سطوع لكل التطبيقات: سماح",
     },
   };
   let lang = store.get("car.lang", /^ar/.test(navigator.language || "") ? "ar" : "en");
@@ -1422,6 +1430,7 @@
     try { media = JSON.parse(TV.mediaState()) || {}; } catch (e) { media = {}; }
     playingGuess = null;
     if (screen === 1) renderMedia();
+    if (has("cc-open")) renderCCMedia();
   };
   const isPlaying = () => (playingGuess != null ? playingGuess : media.state === 3 || media.state === 6);
   function renderMedia() {
@@ -1508,6 +1517,183 @@
     try { TV.openUrl("market://details?id=com.ionitech.airscreen"); } catch (e) {}
   });
 
+  /* ---------------- Control Center: swipe down from the top, like an iPhone ---------------- */
+  // Your notifications (from the MK Car Helper: tap to open, ✕ to dismiss, Clear for all) and big
+  // controls: Wi-Fi, Bluetooth, Cast, Split, Now Playing, brightness, volume, day/night, Settings.
+  // Android's own pull-down shade is part of the system; it can't be restyled by a launcher.
+  let cc = null;
+  const ccOpen = () => has("cc-open");
+  function openCC() {
+    if (ccOpen()) return;
+    closePop();
+    document.body.classList.add("cc-open");
+    document.body.classList.remove("cc-drag");
+    $("ccSheet").style.transform = "";
+    try { notes = JSON.parse(TV.notifications()) || []; } catch (e) {}
+    try { TV.notifCommand("notifs", ""); } catch (e) {}
+    renderNotifs();
+    renderQuick();
+    renderCCMedia();
+  }
+  function closeCC() {
+    document.body.classList.remove("cc-open", "cc-drag");
+    $("ccSheet").style.transform = "";
+  }
+  $("ccPull").addEventListener("click", openCC);
+  // Pulled from the top edge: the sheet follows the finger.
+  addEventListener("pointerdown", (e) => {
+    if (ccOpen() || has("drawer-open") || has("picker-open") || has("qibla-open") || e.clientY / S > 80) return;
+    cc = { y0: e.clientY, id: e.pointerId, on: false };
+  }, true);
+  addEventListener("pointermove", (e) => {
+    if (!cc || e.pointerId !== cc.id) return;
+    const dy = (e.clientY - cc.y0) / S;
+    if (!cc.on) { if (dy < 18) return; cc.on = true; sw = null; document.body.classList.add("cc-drag"); }
+    const h = $("cc").offsetHeight;
+    $("ccSheet").style.transform = `translate3d(0,${Math.min(0, dy - h)}px,0)`;
+    $("cc").style.setProperty("--cc-o", Math.min(1, dy / h * 1.4).toFixed(3));
+  }, { passive: true });
+  const ccEnd = (e) => {
+    if (!cc || e.pointerId !== cc.id) return;
+    const c = cc; cc = null;
+    if (!c.on) return;
+    document.body.classList.remove("cc-drag");
+    $("ccSheet").style.transform = "";
+    if ((e.clientY - c.y0) / S > 130) openCC();
+    addEventListener("click", eatClick, true);
+    setTimeout(() => removeEventListener("click", eatClick, true), 350);
+  };
+  addEventListener("pointerup", ccEnd);
+  addEventListener("pointercancel", ccEnd);
+  // Pushed up (or a tap on the dark edge): closes.
+  let ccUp = null;
+  $("ccSheet").addEventListener("pointerdown", (e) => {
+    // Not on a slider, nor on the notification list while it has more to scroll.
+    if (e.target.closest(".cc-slider")) return;
+    const l = e.target.closest(".cc-list");
+    if (l && l.scrollHeight > l.clientHeight + 2) return;
+    ccUp = { y0: e.clientY, id: e.pointerId };
+  });
+  addEventListener("pointermove", (e) => {
+    if (!ccUp || e.pointerId !== ccUp.id) return;
+    const dy = Math.min(0, (e.clientY - ccUp.y0) / S);
+    if (dy < -12) { document.body.classList.add("cc-drag"); $("ccSheet").style.transform = `translate3d(0,${dy}px,0)`; }
+  }, { passive: true });
+  addEventListener("pointerup", (e) => {
+    if (!ccUp || e.pointerId !== ccUp.id) return;
+    const dy = (e.clientY - ccUp.y0) / S; ccUp = null;
+    document.body.classList.remove("cc-drag");
+    if (dy < -90) { closeCC(); addEventListener("click", eatClick, true); setTimeout(() => removeEventListener("click", eatClick, true), 350); }
+    else $("ccSheet").style.transform = "";
+  });
+  $("cc").addEventListener("click", (e) => { if (e.target === $("cc") || e.target === $("ccSheet") || e.target.classList.contains("cc-grid")) closeCC(); });
+
+  // Notifications
+  let notes = [];
+  window.onNotifs = () => {
+    try { notes = JSON.parse(TV.notifications()) || []; } catch (e) { notes = []; }
+    if (ccOpen()) renderNotifs();
+  };
+  const XICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  function renderNotifs() {
+    let acc = { helper: 0, access: false };
+    try { acc = JSON.parse(TV.mediaAccess()); } catch (e) {}
+    const list = $("ccList");
+    $("ccClear").hidden = !(acc.helper >= 3 && acc.access && notes.some((n) => n.clear));
+    if (acc.helper < 3 || !acc.access) {
+      list.innerHTML = `<div class="cc-empty">${escapeHtml(T(acc.helper < 3 ? "notifHelper" : "notifAccess"))}${acc.helper >= 3 ? `<br><button id="ccAllow">${escapeHtml(T("allow"))}</button>` : ""}</div>`;
+      if ($("ccAllow")) $("ccAllow").addEventListener("click", () => { closeCC(); try { TV.openMediaAccess(); } catch (e) {} });
+      return;
+    }
+    if (!notes.length) { list.innerHTML = `<div class="cc-empty">${escapeHtml(T("noNotifs"))}</div>`; return; }
+    list.innerHTML = notes.map((n) => {
+      const a = appByPkg(n.pkg), mins = Math.floor((Date.now() - n.time) / 60000);
+      const when = mins < 1 ? T("now") : T("ago", mins);
+      const icon = a && a.icon ? `<img src="${a.icon}" alt="">` : escapeHtml((n.app || "?").slice(0, 1));
+      return `<div class="cc-n" data-k="${escapeHtml(n.key)}"><div class="ic">${icon}</div><div class="bd"><div class="top"><b>${escapeHtml(n.app)}</b><span>${when}</span></div>` +
+        `<div class="tt">${escapeHtml(n.title)}</div><div class="tx">${escapeHtml(n.text)}</div></div>` +
+        (n.clear ? `<button class="x" aria-label="Dismiss">${XICON}</button>` : "") + `</div>`;
+    }).join("");
+  }
+  $("ccList").addEventListener("click", (e) => {
+    const card = e.target.closest(".cc-n");
+    if (!card) return;
+    const key = card.dataset.k;
+    if (e.target.closest(".x")) {
+      card.classList.add("gone");
+      setTimeout(() => { notes = notes.filter((n) => n.key !== key); renderNotifs(); }, 220);
+      try { TV.notifCommand("ndismiss", key); } catch (er) {}
+      return;
+    }
+    closeCC();
+    try { TV.notifCommand("nopen", key); } catch (er) {}
+  });
+  $("ccClear").addEventListener("click", () => {
+    notes = notes.filter((n) => !n.clear);
+    renderNotifs();
+    try { TV.notifCommand("nclear", ""); } catch (e) {}
+  });
+
+  // Quick controls
+  let quick = {};
+  function renderQuick() {
+    try { quick = JSON.parse(TV.quickState()) || {}; } catch (e) { quick = {}; }
+    $("ccWifi").classList.toggle("on", !!quick.wifi);
+    $("ccBt").classList.toggle("on", quick.bt === 1);
+    $("ccBt").hidden = quick.bt === -1;
+    setSlider($("ccBright"), quick.brightness != null ? quick.brightness : 0.5);
+    setSlider($("ccVol"), quick.maxVolume ? quick.volume / quick.maxVolume : 0.5);
+    const names = ["day", "comfort", "night"];
+    $("ccModeIcon").innerHTML = $("modeSeg").children[comfort].innerHTML;
+    $("ccModeName").textContent = T(names[comfort]);
+    $("ccMode").classList.toggle("on", comfort > 0);
+  }
+  const later = (f) => setTimeout(() => { if (ccOpen()) f(); }, 900);
+  $("ccWifi").addEventListener("click", () => { try { if (!TV.setWifi(!quick.wifi)) closeCC(); } catch (e) {} quick.wifi = !quick.wifi; $("ccWifi").classList.toggle("on", !!quick.wifi); later(renderQuick); });
+  $("ccBt").addEventListener("click", () => { try { if (!TV.setBluetooth(quick.bt !== 1)) closeCC(); } catch (e) {} quick.bt = quick.bt === 1 ? 0 : 1; $("ccBt").classList.toggle("on", quick.bt === 1); later(renderQuick); });
+  $("ccCast").addEventListener("click", () => { closeCC(); cast(); });
+  $("ccSplit").addEventListener("click", () => { closeCC(); splitMenu(); });
+  $("ccSettings").addEventListener("click", () => { closeCC(); try { TV.openSettings(); } catch (e) {} });
+  $("ccMode").addEventListener("click", () => { setComfort((comfort + 1) % 3); renderQuick(); });
+  function setSlider(el, f) {
+    f = Math.max(0, Math.min(1, f));
+    el.querySelector(".cc-fill").style.height = (f * 100).toFixed(1) + "%";
+    el.classList.toggle("low", f < 0.16);
+  }
+  // Brightness and volume: drag up and down on the tall sliders.
+  for (const el of [$("ccBright"), $("ccVol")]) {
+    let drag = null, sentAt = 0;
+    const apply = (e, final) => {
+      const r = el.getBoundingClientRect(), f = Math.max(0, Math.min(1, (r.bottom - e.clientY) / r.height));
+      setSlider(el, f);
+      if (!final && performance.now() - sentAt < 70) return;
+      sentAt = performance.now();
+      try {
+        if (el.dataset.k === "vol") TV.setVolume(Math.round(f * (quick.maxVolume || 15)));
+        else if (!TV.setSystemBrightness(f)) {
+          TV.setBrightness(Math.max(0.05, f)); // only the home screen, until allowed for all apps
+          if (final && !quick.askedWrite) { quick.askedWrite = true; toast(T("allowAll")); TV.openWriteSettings(); }
+        }
+      } catch (er) {}
+    };
+    el.addEventListener("pointerdown", (e) => { drag = e.pointerId; el.setPointerCapture && el.setPointerCapture(e.pointerId); apply(e); });
+    el.addEventListener("pointermove", (e) => { if (drag === e.pointerId) apply(e); });
+    el.addEventListener("pointerup", (e) => { if (drag === e.pointerId) { apply(e, true); drag = null; } });
+    el.addEventListener("pointercancel", () => { drag = null; });
+  }
+  // Now Playing, small
+  function renderCCMedia() {
+    $("ccMTitle").textContent = media.title || (media.pkg ? (appByPkg(media.pkg) || {}).label || "" : T("nothing"));
+    $("ccMArtist").textContent = media.artist || "";
+    $("ccMPlay").innerHTML = isPlaying() ? PAUSE_ICON : PLAY_ICON;
+  }
+  document.querySelector(".cc-mctrls").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.c === "toggle") { playingGuess = !isPlaying(); $("ccMPlay").innerHTML = playingGuess ? PAUSE_ICON : PLAY_ICON; }
+    cmd(b.dataset.c);
+  });
+
   /* ---------------- toast: a short note at the bottom ---------------- */
   let toastTimer = null;
   function toast(text) {
@@ -1547,6 +1733,7 @@
     clearTimeout(azTimer); // nothing changes on screen while another app is in front
   };
   window.onTvBack = () => {
+    if (has("cc-open")) return closeCC();
     if (has("picker-open")) return closePicker();
     if (has("qibla-open")) return closeQibla();
     if (zone === "prompt" || (!has("drawer-open") && zone !== "pop")) return; // Back on the home page does nothing
@@ -1555,6 +1742,7 @@
   window.onTvHome = () => {
     if (zone === "prompt") return;
     closeDrawer(true);
+    closeCC();
     setScreen(0);
     document.body.classList.remove("cast-open");
     zone = "grid";
