@@ -12,7 +12,9 @@ import android.view.accessibility.AccessibilityWindowInfo;
  * Lets the car home screen put two apps side by side. Apps can't enter split screen themselves,
  * so when you switch this on (Settings → Accessibility → MK Split Screen) the launcher uses it only
  * to press the system's "split screen" action, and to see whether the split-screen divider is on
- * screen (window types only). It reads nothing on the screen.
+ * screen (window types only). On the car home screen it also swaps Android's notification shade for
+ * the launcher's Control Center: when the shade is pulled down over the home screen, it closes it and
+ * asks the launcher to open its own. It reads nothing on the screen beyond which app is in front.
  */
 public class SplitService extends AccessibilityService {
 
@@ -89,6 +91,56 @@ public class SplitService extends AccessibilityService {
         return false;
     }
 
-    @Override public void onAccessibilityEvent(AccessibilityEvent event) { }
+    /* ---------- the notification shade over the car home screen ---------- */
+
+    private static final String SYSTEMUI = "com.android.systemui";
+    private String front = "";          // the app in front (last window change from an app)
+    private long swappedAt = 0;
+    private static long systemUntil = 0; // "Android panel" from the Control Center: leave the shade alone
+
+    @Override public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event == null) return;
+        CharSequence p = event.getPackageName();
+        String pkg = p == null ? "" : p.toString();
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !pkg.isEmpty()
+                && !SYSTEMUI.equals(pkg) && !pkg.contains("inputmethod") && !pkg.equals(getPackageName())) {
+            front = pkg;
+        }
+        if (SYSTEMUI.equals(pkg) || event.getEventType() == AccessibilityEvent.TYPE_WINDOWS_CHANGED) swapShade();
+    }
+
+    private void swapShade() {
+        long now = System.currentTimeMillis();
+        if (!MediaListener.LAUNCHER.equals(front) || now < systemUntil || now - swappedAt < 1500 || !shadeOpen()) return;
+        swappedAt = now;
+        performGlobalAction(GLOBAL_ACTION_BACK); // closes the shade
+        try { sendBroadcast(new Intent("com.mk.carlauncher.OPEN_CC").setPackage(MediaListener.LAUNCHER)); } catch (Exception ignored) { }
+    }
+
+    /** Android's shade is down: a System UI window covering most of the screen (not the lock screen). */
+    private boolean shadeOpen() {
+        try {
+            android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            if (km != null && km.isKeyguardLocked()) return false;
+            int h = getResources().getDisplayMetrics().heightPixels;
+            android.graphics.Rect r = new android.graphics.Rect();
+            for (AccessibilityWindowInfo w : getWindows()) {
+                if (w.getType() != AccessibilityWindowInfo.TYPE_SYSTEM) continue;
+                w.getBoundsInScreen(r);
+                if (r.height() < h * 0.6) continue;
+                android.view.accessibility.AccessibilityNodeInfo root = w.getRoot();
+                if (root != null && SYSTEMUI.contentEquals(root.getPackageName() == null ? "" : root.getPackageName())) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** The launcher's "Android panel" button: the real shade, for a little while. */
+    static void systemShade() {
+        SplitService s = instance;
+        if (s == null) return;
+        systemUntil = System.currentTimeMillis() + 15000;
+        s.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+    }
     @Override public void onInterrupt() { }
 }

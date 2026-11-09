@@ -300,6 +300,13 @@ public class Bridge {
                 .putExtra("cmd", cmd).putExtra("key", key));
     }
 
+    /** Android's own notification shade (the Control Center's "Android panel"), through the helper. */
+    @JavascriptInterface
+    public void systemShade() {
+        context.sendBroadcast(new Intent(SplitReceiver.MEDIA).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName())
+                .putExtra("cmd", "systemshade"));
+    }
+
     /** {wifi, bt (-1: none), volume, maxVolume, brightness 0-1, canWrite}. */
     @JavascriptInterface
     public String quickState() {

@@ -508,7 +508,7 @@ body.portrait .md-art { max-height: 150px; }
 .md-src:active { transform: scale(.9); }
 body.rtl .md-hint, body.rtl .md-app { font-family: "Amiri", serif; letter-spacing: 0; }
 
-#dkCast { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+#dkCC, #dkCast { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
 #castInfo { position: absolute; inset: 0; z-index: 8; background: rgba(0,0,0,0.42); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
 body.cast-open #castInfo { opacity: 1; pointer-events: auto; }
 body.cast-open .ci-panel { transform: scale(1); }
@@ -620,3 +620,12 @@ body.xfer-open .xf-panel { transform: translate(-50%, -50%); }
 body.rtl .xf-title, body.rtl .xf-sub, body.rtl .xf-steps, body.rtl .xf-log { font-family: "Amiri", serif; }
 body.rtl .xf-steps { padding-left: 0; padding-right: 26px; }
 #ccFiles.on svg { background: #0A84FF; }
+.cc-hb { display: flex; gap: 10px; }
+#ccSys { background: rgba(255,255,255,0.08); color: var(--ink-2); font-weight: 500; }
+#dock.tight { gap: 6px; padding: 12px 0 10px; }
+#dock.tight .dk-btn.round { width: 46px; height: 46px; }
+#dock.tight .dk-btn.round svg { width: 25px; height: 25px; }
+#dock.tight .recent { width: 58px; height: 58px; border-radius: 14px; }
+#dock.tight #dkRecents { gap: 6px; }
+#dock.tight .dk-btn.drawer { width: 72px; height: 72px; border-radius: 22px; }
+#dock.tight .dk-time #clock { font-size: 26px; }

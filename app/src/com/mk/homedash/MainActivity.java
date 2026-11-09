@@ -31,6 +31,10 @@ public class MainActivity extends Activity {
     // Car: what's playing in any app, from the MK Car Helper (see MediaListener).
     private final BroadcastReceiver media = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
+            if ("com.mk.carlauncher.OPEN_CC".equals(i.getAction())) {
+                js("window.openCC && window.openCC()");
+                return;
+            }
             if ("com.mk.carlauncher.NOTIFS".equals(i.getAction())) {
                 String list = i.getStringExtra("list");
                 Bridge.notifs = list == null ? "[]" : list;
@@ -57,6 +61,7 @@ public class MainActivity extends Activity {
         if (car) {
             IntentFilter mf = new IntentFilter("com.mk.carlauncher.MEDIA_STATE");
             mf.addAction("com.mk.carlauncher.NOTIFS");
+            mf.addAction("com.mk.carlauncher.OPEN_CC");
             registerReceiver(media, mf);
         }
         phone = "phone".equals(flavor);

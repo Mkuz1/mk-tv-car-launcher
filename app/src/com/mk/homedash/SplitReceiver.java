@@ -21,9 +21,10 @@ public class SplitReceiver extends BroadcastReceiver {
         if (CHECK.equals(a)) {
             SplitService.leaveSplit(context);
         } else if (MEDIA.equals(a)) {
+            String cmd = intent.getStringExtra("cmd");
+            if ("systemshade".equals(cmd)) { SplitService.systemShade(); return; }
             MediaListener m = MediaListener.instance;
             if (m == null) return;
-            String cmd = intent.getStringExtra("cmd");
             if ("notifs".equals(cmd)) m.sendNotifs();
             else if (cmd != null && cmd.startsWith("n")) m.notif(cmd, intent.getStringExtra("key"));
             else if (cmd == null || "state".equals(cmd)) m.send();

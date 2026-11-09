@@ -56,7 +56,7 @@
       noNotifs: "No notifications", notifHelper: "To see your notifications here, install MK Car Helper (mk-split-helper.apk, 1.2 or later).",
       notifAccess: "To see your notifications here, allow MK Car Helper in Notification access.", now: "now",
       ago: (m) => (m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ago`), allowAll: "Brightness for all apps: allow",
-      files: "File Transfer", xfOn: "On: your phone can open the car's files", xfOff: "Off",
+      androidPanel: "Android panel", files: "File Transfer", xfOn: "On: your phone can open the car's files", xfOff: "Off",
       xfStep1: "Connect your phone to the <b>same Wi-Fi</b> as the car (your iPhone's hotspot works).",
       xfStep1Hot: (s, p) => `Join the car's Wi-Fi <b>${s}</b> (password <b>${p}</b>): scan the first code.`,
       xfStep2: "Scan the code with the <b>camera</b> and open the page.", xfStep3: "Browse the car's folders, <b>Upload here</b>, download, rename or delete.",
@@ -102,7 +102,7 @@
       noNotifs: "لا توجد إشعارات", notifHelper: "لعرض إشعاراتك هنا، ثبّت MK Car Helper ‏(mk-split-helper.apk الإصدار 1.2 أو أحدث).",
       notifAccess: "لعرض إشعاراتك هنا، اسمح لـ MK Car Helper في الوصول إلى الإشعارات.", now: "الآن",
       ago: (m) => (m < 60 ? `قبل ${m} د` : `قبل ${Math.floor(m / 60)} س`), allowAll: "سطوع لكل التطبيقات: سماح",
-      files: "نقل الملفات", xfOn: "يعمل: يمكن لهاتفك فتح ملفات السيارة", xfOff: "متوقف",
+      androidPanel: "لوحة Android", files: "نقل الملفات", xfOn: "يعمل: يمكن لهاتفك فتح ملفات السيارة", xfOff: "متوقف",
       xfStep1: "صِل هاتفك <b>بنفس شبكة Wi-Fi</b> المتصلة بها السيارة (نقطة اتصال الآيفون تعمل).",
       xfStep1Hot: (s, p) => `اتصل بشبكة السيارة <b>${s}</b> (كلمة المرور <b>${p}</b>): امسح الرمز الأول.`,
       xfStep2: "امسح الرمز <b>بالكاميرا</b> وافتح الصفحة.", xfStep3: "تصفّح مجلدات السيارة، <b>ارفع هنا</b>، نزّل، أعد التسمية أو احذف.",
@@ -136,6 +136,7 @@
     el.style.height = SH + "px";
     el.style.transform = `scale(${S})`;
     measure();
+    fitDock();
     renderGrid();
     if (openItem) renderFolder();
     fitAzkarText();
@@ -194,6 +195,14 @@
     dockKey = key;
     $("dkRecents").innerHTML = shown.map((a) =>
       `<button class="recent${a.small ? " small" : ""}" data-pkg="${escapeHtml(a.pkg)}" aria-label="${escapeHtml(a.label)}">${a.icon ? `<img src="${a.icon}" alt="" decoding="async">` : ""}</button>`).join("");
+    fitDock();
+  }
+  // A full sidebar (four apps and every button) gets a little tighter instead of running off the screen.
+  function fitDock() {
+    const d = $("dock");
+    d.classList.remove("tight");
+    if (has("portrait")) return;
+    if (d.scrollHeight > d.clientHeight + 1) d.classList.add("tight");
   }
   // Opening a navigation app (from the drawer, sidebar or favorites) starts a trip: travel dua.
   const NAV_APPS = new Set([
@@ -1560,6 +1569,10 @@
     $("ccSheet").style.transform = "";
   }
   $("ccPull").addEventListener("click", openCC);
+  $("dkCC").addEventListener("click", openCC);
+  // The helper (1.3+) opens this instead of Android's shade pulled down over the home screen.
+  window.openCC = () => { if (!has("xfer-open")) { closeDrawer(true); openCC(); } };
+  $("ccSys").addEventListener("click", () => { closeCC(); try { TV.systemShade(); } catch (e) {} });
   // Pulled from the top edge: the sheet follows the finger.
   addEventListener("pointerdown", (e) => {
     if (ccOpen() || has("drawer-open") || has("picker-open") || has("qibla-open") || e.clientY / S > 80) return;
@@ -1620,6 +1633,7 @@
     try { acc = JSON.parse(TV.mediaAccess()); } catch (e) {}
     const list = $("ccList");
     $("ccClear").hidden = !(acc.helper >= 3 && acc.access && notes.some((n) => n.clear));
+    $("ccSys").hidden = !(acc.helper >= 4);
     if (acc.helper < 3 || !acc.access) {
       list.innerHTML = `<div class="cc-empty">${escapeHtml(T(acc.helper < 3 ? "notifHelper" : "notifAccess"))}${acc.helper >= 3 ? `<br><button id="ccAllow">${escapeHtml(T("allow"))}</button>` : ""}</div>`;
       if ($("ccAllow")) $("ccAllow").addEventListener("click", () => { closeCC(); try { TV.openMediaAccess(); } catch (e) {} });

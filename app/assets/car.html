@@ -18,6 +18,10 @@
       <div class="dk-rule"></div>
       <div id="dkRecents"></div>
       <div class="dk-spacer"></div>
+      <!-- Control Center (also: swipe down from the top) -->
+      <button class="dk-btn round" id="dkCC" aria-label="Control Center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg>
+      </button>
       <!-- Cast: AirPlay / Google Cast from a phone, through the receiver app on the head unit -->
       <button class="dk-btn round" id="dkCast" aria-label="Cast">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M3 12a8 8 0 0 1 8 8M3 16a4 4 0 0 1 4 4"/><circle cx="3.5" cy="19.5" r=".8" fill="currentColor"/></svg>
@@ -173,7 +177,7 @@
     <div id="cc">
       <div class="cc-sheet" id="ccSheet">
         <section class="cc-notifs glass">
-          <header><span class="cc-h" data-t="notifications"></span><button class="cc-clear" id="ccClear" data-t="clearAll"></button></header>
+          <header><span class="cc-h" data-t="notifications"></span><span class="cc-hb"><button class="cc-clear" id="ccSys" data-t="androidPanel"></button><button class="cc-clear" id="ccClear" data-t="clearAll"></button></span></header>
           <div class="cc-list" id="ccList"></div>
         </section>
         <section class="cc-grid">
