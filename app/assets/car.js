@@ -1,7 +1,6 @@
 // Car home screen (car/AndroidManifest.xml), touch first, in English or Arabic. Swipe left from Home for
 // Drive (a big Google map and Now Playing, like CarPlay). Home: time, Wi-Fi, Cast,
-// Settings, sidebar apps, an azkar widget (the travel dua when a trip starts), favorite places opened in
-// Google Maps, the Qibla compass, and prayer times for where the car is, with day / night modes.
+// Settings, sidebar apps, an azkar widget (the travel dua when a trip starts), the Qibla compass, and prayer times for where the car is, with day / night modes.
 // The App Drawer button opens every app in pages, with the TV home's options menu: Move, Add to
 // Folder, Hide, Delete, folders with Rename and Remove.
 // Smoothness: nothing is blurred live (the wallpaper is pre-blurred), only transform/opacity animate,
@@ -1101,7 +1100,7 @@
   }
   function renderFavs() {
     const all = favs();
-    document.querySelectorAll(".fav").forEach((b) => b.classList.toggle("custom", !!all[b.dataset.f]));
+    document.querySelectorAll(".dv-fav").forEach((b) => b.classList.toggle("custom", !!all[b.dataset.f]));
   }
   function favTap(b) {
     const f = b.dataset.f;
@@ -1135,19 +1134,22 @@
     if (favs()[f]) actions.push([T(f === "home" ? "mapsHome" : "mapsWork"), ICON.mapsPin, () => { setFav(f, null); closePop(); }]);
     showPop(actions, b);
   }
+  // On the Drive screen's map: tap to go; hold Home or Work to use another place.
   let favHold = null, favHeld = false;
-  $("fav").addEventListener("pointerdown", (e) => {
-    const b = e.target.closest(".fav");
+  const bar = document.querySelector(".dv-bar");
+  bar.addEventListener("pointerdown", (e) => {
+    const b = e.target.closest(".dv-fav");
     if (!b) return;
     favHeld = false;
     clearTimeout(favHold);
     favHold = setTimeout(() => { favHeld = true; favMenu(b); }, LONG_PRESS_MS);
   });
-  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) $("fav").addEventListener(ev, () => clearTimeout(favHold));
-  $("fav").addEventListener("click", (e) => {
-    const b = e.target.closest(".fav");
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(ev, () => clearTimeout(favHold));
+  bar.addEventListener("click", (e) => {
+    const b = e.target.closest(".dv-fav");
     if (b && !favHeld) favTap(b);
   });
+  $("qiblaBtn").addEventListener("click", (e) => { e.stopPropagation(); openQibla(); });
 
   /* ---------------- Qibla compass ---------------- */
   // The direction of the Kaaba from the car. The dial turns with the car: from the head unit's
@@ -1397,7 +1399,6 @@
   addEventListener("offline", () => { $("dvOffline").hidden = false; });
   $("dvCenter").addEventListener("click", () => showMap(true));
   $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
-  document.querySelectorAll(".dv-fav").forEach((b) => b.addEventListener("click", () => favTap(b)));
   function renderSpeed() {
     let m = null;
     try { m = JSON.parse(TV.carMotion()); } catch (e) {}

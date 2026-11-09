@@ -130,7 +130,7 @@ body.drawer-full #home { visibility: hidden; } /* nothing to paint under the dra
 /* ---------- eye comfort ---------- */
 .p-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .p-ctrls { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-#langBtn, .seg button {
+#langBtn, #qiblaBtn, .seg button {
   height: 48px; display: flex; align-items: center; justify-content: center; color: var(--ink-2);
   transition: transform .18s var(--ease), background .2s, color .2s;
 }
@@ -143,7 +143,7 @@ body.drawer-full #home { visibility: hidden; } /* nothing to paint under the dra
 .seg button { width: 48px; height: 44px; border-radius: 22px; }
 .seg button svg { width: 24px; height: 24px; display: block; }
 .seg button.on { color: var(--gold-ink); background: var(--gold-pill); box-shadow: var(--gold-pill-rim); }
-#langBtn:active, .seg button:active { transform: scale(.88); }
+#langBtn:active, #qiblaBtn:active, .seg button:active { transform: scale(.88); }
 #comfort {
   position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0;
   transition: opacity .5s ease, background .5s ease;
@@ -514,3 +514,7 @@ body.cast-open #castInfo { opacity: 1; pointer-events: auto; }
 body.cast-open .ci-panel { transform: scale(1); }
 .ci-panel { left: 50%; top: 50%; width: 760px; margin-left: -380px; margin-top: -170px; }
 .ci-text { line-height: 1.5; padding: 6px 10px 0; }
+#qiblaBtn { width: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: var(--gold-pill); color: var(--gold-ink); box-shadow: var(--gold-pill-rim); }
+#qiblaBtn svg { width: 26px; height: 26px; }
+.dv-fav.custom { position: relative; }
+.dv-fav.custom::after { content: ""; position: absolute; top: 8px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
