@@ -1189,6 +1189,19 @@ public class Bridge {
                 new Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.MainSettings"));
     }
 
+    /** Whether Android has a network with internet (Wi-Fi, mobile data, Ethernet...). */
+    @JavascriptInterface
+    public boolean online() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network n = cm.getActiveNetwork();
+            NetworkCapabilities caps = n == null ? null : cm.getNetworkCapabilities(n);
+            return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } catch (Exception e) {
+            return true; // can't tell: don't claim it's offline
+        }
+    }
+
     /** {type: "wifi" | "ethernet" | "none", level: 0-4}. */
     @JavascriptInterface
     public String network() {

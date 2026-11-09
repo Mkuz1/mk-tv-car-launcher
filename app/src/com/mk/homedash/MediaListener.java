@@ -148,16 +148,53 @@ public class MediaListener extends NotificationListenerService {
         } catch (Exception ignored) { }
     }
 
-    /** The session playing now, else the most recent one. */
+    // Every session is watched, so the one that started playing last can be followed.
+    private final java.util.Map<android.media.session.MediaSession.Token, Long> playedAt = new java.util.HashMap<>();
+    private final java.util.Map<android.media.session.MediaSession.Token, MediaController.Callback> watching = new java.util.HashMap<>();
+
+    private void watchAll(List<MediaController> list) {
+        java.util.Set<android.media.session.MediaSession.Token> live = new java.util.HashSet<>();
+        for (final MediaController c : list) {
+            final android.media.session.MediaSession.Token t = c.getSessionToken();
+            live.add(t);
+            if (watching.containsKey(t)) continue;
+            MediaController.Callback cb = new MediaController.Callback() {
+                @Override public void onPlaybackStateChanged(PlaybackState st) {
+                    if (st != null && st.getState() == PlaybackState.STATE_PLAYING) {
+                        playedAt.put(t, System.currentTimeMillis());
+                        repick();
+                    }
+                }
+            };
+            try { c.registerCallback(cb, main); watching.put(t, cb); } catch (Exception ignored) { }
+            PlaybackState st = c.getPlaybackState();
+            if (st != null && st.getState() == PlaybackState.STATE_PLAYING && !playedAt.containsKey(t)) playedAt.put(t, System.currentTimeMillis());
+        }
+        watching.keySet().retainAll(live);
+        playedAt.keySet().retainAll(live);
+    }
+
+    /**
+     * The player to show and control: one that is playing a real song first (some apps, like car
+     * phone-link apps, keep a session open with nothing in it), the one that started playing last
+     * if several, else the last one that played something.
+     */
     private void pick(List<MediaController> list) {
         MediaController best = null;
         if (list != null) {
+            watchAll(list);
+            int bestScore = -1;
+            long bestAt = -1;
             for (MediaController c : list) {
-                PlaybackState s = c.getPlaybackState();
-                if (s != null && s.getState() == PlaybackState.STATE_PLAYING) { best = c; break; }
-            }
-            if (best == null && !list.isEmpty()) {
-                best = current != null && contains(list, current) ? current : list.get(0);
+                if (getPackageName().equals(c.getPackageName()) || LAUNCHER.equals(c.getPackageName())) continue;
+                PlaybackState st = c.getPlaybackState();
+                boolean playing = st != null && (st.getState() == PlaybackState.STATE_PLAYING || st.getState() == PlaybackState.STATE_BUFFERING);
+                MediaMetadata m = c.getMetadata();
+                boolean song = m != null && text(m, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE).length() > 0;
+                int score = (playing && song ? 6 : 0) + (playing ? 2 : 0) + (song ? 3 : 0);
+                Long at = playedAt.get(c.getSessionToken());
+                long when = at == null ? 0 : at;
+                if (score > bestScore || (score == bestScore && when > bestAt)) { best = c; bestScore = score; bestAt = when; }
             }
         }
         setCurrent(best);

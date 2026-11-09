@@ -1424,16 +1424,20 @@
   // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
   // moved to the car again when it has gone a few hundred metres (or on the recenter button).
   let mapAt = null;
+  // The WebView's own navigator.onLine is wrong on some head units: ask Android.
+  const isOnline = () => { try { return TV.online(); } catch (e) { return navigator.onLine !== false; } };
   function showMap(force = false) {
-    $("dvOffline").hidden = navigator.onLine !== false;
+    const wasOff = !$("dvOffline").hidden;
+    $("dvOffline").hidden = isOnline();
+    if (wasOff && $("dvOffline").hidden) force = true; // back online: load it again
     const here = [C.latitude, C.longitude];
     const moved = !mapAt || Math.hypot((here[0] - mapAt[0]) * 111, (here[1] - mapAt[1]) * 111 * Math.cos(here[0] * Math.PI / 180)) > 0.4;
     if (!force && !moved) return;
     mapAt = here;
     $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&z=15&hl=${lang}&output=embed`;
   }
+  $("mapFrame").addEventListener("load", () => { if ($("mapFrame").src && isOnline()) $("dvOffline").hidden = true; });
   addEventListener("online", () => { if (screen === 1) showMap(true); });
-  addEventListener("offline", () => { $("dvOffline").hidden = false; });
   $("dvCenter").addEventListener("click", () => showMap(true));
   $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
   function renderSpeed() {
@@ -1524,7 +1528,13 @@
   });
   $("mdArt").addEventListener("click", () => cmd("open"));
   $("mdTitle").addEventListener("click", () => cmd("open"));
-  setInterval(() => { if (!paused && screen === 1) { renderProgress(); renderSpeed(); } }, 1000);
+  let tickN = 0;
+  setInterval(() => {
+    if (paused || screen !== 1) return;
+    renderProgress();
+    renderSpeed();
+    if (++tickN % 10 === 0) showMap(); // follows the car, and the connection coming back
+  }, 1000);
 
   /* ---------------- Cast: AirPlay / Google Cast through a receiver app ---------------- */
   // Apps can't be AirPlay or Google Cast receivers on their own, so Cast opens the receiver app on
