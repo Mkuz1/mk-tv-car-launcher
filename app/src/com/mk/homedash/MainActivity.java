@@ -28,6 +28,14 @@ public class MainActivity extends Activity {
         }
     };
 
+    // Car: what's playing in any app, from the MK Car Helper (see MediaListener).
+    private final BroadcastReceiver media = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            Bridge.mediaState = Bridge.mediaJson(i);
+            js("window.onMedia && window.onMedia()");
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +48,7 @@ public class MainActivity extends Activity {
         registerReceiver(packages, f);
         String flavor = Bridge.flavor(this);
         car = "car".equals(flavor);
+        if (car) registerReceiver(media, new IntentFilter("com.mk.carlauncher.MEDIA_STATE"));
         phone = "phone".equals(flavor);
         // No FLAG_KEEP_SCREEN_ON here: the screensaver must be able to start on top of Home.
         web = Web.create(this, car ? "car.html" : phone ? "phone.html" : "home.html");
@@ -128,9 +137,16 @@ public class MainActivity extends Activity {
      * back full screen. Not while a split pair is being opened (Home briefly shows beside the first app).
      */
     private void leaveSplit() {
-        if (!car || !inSplit() || !Bridge.splitHelperOn(this)) return;
+        if (!car || !Bridge.splitHelperOn(this)) return;
         long now = System.currentTimeMillis();
-        if (now - Bridge.splitLaunchAt < 6000 || now - unsplitAt < 4000) return;
+        if (now - Bridge.splitLaunchAt < 6000) return;
+        // Helper 1.1+: it sees the split-screen divider itself (Home often doesn't know it's beside
+        // a docked app), closes the split and brings Home back.
+        if (Bridge.helperVersion(this) >= 2) {
+            sendBroadcast(new Intent(SplitReceiver.CHECK).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName()));
+            return;
+        }
+        if (!inSplit() || now - unsplitAt < 4000) return;
         unsplitAt = now;
         Bridge.toggleSplit(this);
         // Leaving split brings the first app to full screen; put Home back in front of it.
@@ -156,6 +172,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         // Home pressed while already home: jump back to the top row.
         js("window.onTvHome && window.onTvHome()");
+        leaveSplit();
     }
 
     @Override
@@ -167,6 +184,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         unregisterReceiver(packages);
+        if (car) unregisterReceiver(media);
         if (location != null) location.stop();
         super.onDestroy();
     }

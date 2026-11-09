@@ -209,6 +209,82 @@ public class Bridge {
         context.sendBroadcast(new Intent(SplitReceiver.ACTION).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName()));
     }
 
+    /** The installed helper's versionCode (0 if it isn't installed). 2+: split check, Now Playing. */
+    static int helperVersion(Context context) {
+        try {
+            return context.getPackageManager().getPackageInfo(SplitReceiver.PACKAGE, 0).versionCode;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /* Car: Now Playing. The helper reports what's playing (MediaListener); the launcher keeps the last report. */
+    static volatile String mediaState = "{}";
+
+    static String mediaJson(Intent i) {
+        JSONObject o = new JSONObject();
+        try {
+            if (i.hasExtra("pkg")) {
+                o.put("pkg", i.getStringExtra("pkg"));
+                o.put("title", i.getStringExtra("title"));
+                o.put("artist", i.getStringExtra("artist"));
+                o.put("album", i.getStringExtra("album"));
+                o.put("duration", i.getLongExtra("duration", 0));
+                o.put("art", i.getStringExtra("art"));
+                o.put("state", i.getIntExtra("state", 0));
+                o.put("speed", i.getFloatExtra("speed", 1f));
+                o.put("position", i.getLongExtra("position", 0));
+                o.put("positionAt", i.getLongExtra("positionAt", 0));
+                o.put("actions", i.getLongExtra("actions", 0));
+            }
+            o.put("at", System.currentTimeMillis());
+        } catch (Exception ignored) { }
+        return o.toString();
+    }
+
+    @JavascriptInterface
+    public String mediaState() {
+        return mediaState;
+    }
+
+    /** {helper: versionCode, access: Notification access on for the helper}. */
+    @JavascriptInterface
+    public String mediaAccess() {
+        String on = Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+        return "{\"helper\":" + helperVersion(context) + ",\"access\":" + (on != null && on.contains(SplitReceiver.PACKAGE + "/")) + "}";
+    }
+
+    @JavascriptInterface
+    public void openMediaAccess() {
+        startFirst(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"), new Intent(Settings.ACTION_SETTINGS));
+    }
+
+    /**
+     * Play, pause, toggle, next, previous, seek (ms), open, or state (ask for a report). Through the
+     * helper when it may see the player; else the media keys, which Android hands to the app playing.
+     */
+    @JavascriptInterface
+    public void mediaCommand(String cmd, double value) {
+        if (helperVersion(context) >= 2) {
+            context.sendBroadcast(new Intent(SplitReceiver.MEDIA).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName())
+                    .putExtra("cmd", cmd).putExtra("value", (long) value));
+            String on = Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+            if (on != null && on.contains(SplitReceiver.PACKAGE + "/")) return;
+        }
+        int key;
+        switch (cmd) {
+            case "toggle": key = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE; break;
+            case "play": key = KeyEvent.KEYCODE_MEDIA_PLAY; break;
+            case "pause": key = KeyEvent.KEYCODE_MEDIA_PAUSE; break;
+            case "next": key = KeyEvent.KEYCODE_MEDIA_NEXT; break;
+            case "previous": key = KeyEvent.KEYCODE_MEDIA_PREVIOUS; break;
+            default: return;
+        }
+        android.media.AudioManager am = (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, key));
+        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, key));
+    }
+
     /** When the last split-screen pair was opened (ms). */
     static volatile long splitLaunchAt = 0;
 

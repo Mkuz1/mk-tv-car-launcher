@@ -1,4 +1,5 @@
-// Car home screen (car/AndroidManifest.xml), touch first, in English or Arabic. Home: time, Wi-Fi,
+// Car home screen (car/AndroidManifest.xml), touch first, in English or Arabic. Swipe left from Home for
+// Drive (a big Google map and Now Playing, like CarPlay). Home: time, Wi-Fi, Cast,
 // Settings, sidebar apps, an azkar widget (the travel dua when a trip starts), favorite places opened in
 // Google Maps, the Qibla compass, and prayer times for where the car is, with day / night modes.
 // The App Drawer button opens every app in pages, with the TV home's options menu: Move, Add to
@@ -45,6 +46,13 @@
       appMissing: "One of these apps isn't installed",
       helperGet: "Install mk-split-helper.apk from the Releases page, then turn it on here",
       mapsHome: "Use Google Maps Home", mapsWork: "Use Google Maps Work",
+      openMaps: "Google Maps", offline: "No internet connection: the map shows when the car is online. Navigation still opens in Google Maps.",
+      nothing: "Nothing playing", nowPlaying: "Now Playing",
+      needHelper: "To see what's playing, install MK Car Helper (mk-split-helper.apk, version 1.1 or later). The buttons already work.",
+      needAccess: "To see what's playing, allow MK Car Helper in Notification access. The buttons already work.", allow: "Allow",
+      castTitle: "Cast from your phone",
+      castText: "AirPlay and Google Cast need a receiver app on the head unit: Apple and Google don't let apps like this one receive casts by themselves. Install AirScreen (AirPlay, Google Cast, Miracast and DLNA) and the Cast button opens it. Already have one (ZLink, Autokit, EasyConnection…)? It opens that.",
+      castGet: "Get AirScreen",
     },
     ar: {
       apps: "التطبيقات", moveHint: "اسحب التطبيق أو اضغط حيث تريد نقله", done: "تم",
@@ -70,6 +78,13 @@
       appMissing: "أحد التطبيقين غير مثبت",
       helperGet: "ثبّت mk-split-helper.apk من صفحة الإصدارات ثم شغّله من هنا",
       mapsHome: "المنزل من خرائط Google", mapsWork: "العمل من خرائط Google",
+      openMaps: "خرائط Google", offline: "لا يوجد اتصال بالإنترنت: تظهر الخريطة عند اتصال السيارة. الملاحة تعمل في خرائط Google.",
+      nothing: "لا يوجد تشغيل", nowPlaying: "قيد التشغيل",
+      needHelper: "لعرض ما يتم تشغيله، ثبّت MK Car Helper (‏mk-split-helper.apk الإصدار 1.1 أو أحدث). الأزرار تعمل الآن.",
+      needAccess: "لعرض ما يتم تشغيله، اسمح لـ MK Car Helper في الوصول إلى الإشعارات. الأزرار تعمل الآن.", allow: "سماح",
+      castTitle: "البث من هاتفك",
+      castText: "يحتاج AirPlay وGoogle Cast إلى تطبيق استقبال على شاشة السيارة، فلا تسمح Apple وGoogle لتطبيقات مثل هذا بالاستقبال بنفسها. ثبّت AirScreen ‏(AirPlay وGoogle Cast وMiracast وDLNA) وسيفتحه زر البث. إن كان لديك تطبيق آخر (ZLink أو Autokit أو EasyConnection…) فسيفتحه.",
+      castGet: "تنزيل AirScreen",
     },
   };
   let lang = store.get("car.lang", /^ar/.test(navigator.language || "") ? "ar" : "en");
@@ -1316,6 +1331,182 @@
   });
   $("dkSplit").addEventListener("click", () => { if (zone === "move") endMove(); splitMenu(); });
 
+  /* ---------------- Drive screen: swipe left from Home, like CarPlay ---------------- */
+  // A big Google map around the car (60%) with Google Maps shortcuts, and Now Playing for whatever
+  // plays in any app. Swipe right (or tap the dots, or press Home) to go back.
+  let screen = 0;
+  function setScreen(n) {
+    screen = n;
+    document.body.classList.toggle("drive", n === 1);
+    [...$("screenDots").children].forEach((b, i) => b.classList.toggle("on", i === n));
+    $("home").style.transform = $("drive").style.transform = "";
+    if (n === 1) { showMap(); renderMedia(); try { TV.mediaCommand("state", 0); } catch (e) {} }
+  }
+  $("screenDots").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setScreen(+b.dataset.s); });
+  // Swipe with the finger: both screens follow it, then settle.
+  let sw = null;
+  for (const el of [$("home"), $("drive")]) {
+    el.addEventListener("pointerdown", (e) => {
+      if (has("drawer-open") || e.button > 0) return;
+      sw = { x0: e.clientX, y0: e.clientY, id: e.pointerId, on: false, t0: performance.now() };
+    });
+  }
+  addEventListener("pointermove", (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    const dx = (e.clientX - sw.x0) / S, dy = (e.clientY - sw.y0) / S;
+    if (!sw.on) {
+      if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      sw.on = true;
+      document.body.classList.add("swiping");
+    }
+    const w = $("main").offsetWidth + 28, base = screen === 1 ? -w : 0;
+    let x = base + dx;
+    if (x > 0) x /= 3; if (x < -w) x = -w + (x + w) / 3;
+    $("home").style.transform = `translate3d(${x}px,0,0)`;
+    $("drive").style.transform = `translate3d(${x + w}px,0,0)`;
+  }, { passive: true });
+  const swipeEnd = (e) => {
+    if (!sw || e.pointerId !== sw.id) return;
+    const s0 = sw;
+    sw = null;
+    if (!s0.on) return;
+    document.body.classList.remove("swiping");
+    const dx = (e.clientX - s0.x0) / S, fast = Math.abs(dx) / Math.max(1, performance.now() - s0.t0) > 0.5;
+    const to = (dx < -140 || (fast && dx < 0)) ? 1 : (dx > 140 || (fast && dx > 0)) ? 0 : screen;
+    setScreen(to);
+    // The finger lifted on a button: that's not a tap.
+    addEventListener("click", eatClick, true);
+    setTimeout(() => removeEventListener("click", eatClick, true), 350);
+  };
+  const eatClick = (c) => { c.stopPropagation(); c.preventDefault(); };
+  addEventListener("pointerup", swipeEnd);
+  addEventListener("pointercancel", swipeEnd);
+
+  // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
+  // moved to the car again when it has gone a few hundred metres (or on the recenter button).
+  let mapAt = null;
+  function showMap(force = false) {
+    $("dvOffline").hidden = navigator.onLine !== false;
+    const here = [C.latitude, C.longitude];
+    const moved = !mapAt || Math.hypot((here[0] - mapAt[0]) * 111, (here[1] - mapAt[1]) * 111 * Math.cos(here[0] * Math.PI / 180)) > 0.4;
+    if (!force && !moved) return;
+    mapAt = here;
+    $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&z=15&hl=${lang}&output=embed`;
+  }
+  addEventListener("online", () => { if (screen === 1) showMap(true); });
+  addEventListener("offline", () => { $("dvOffline").hidden = false; });
+  $("dvCenter").addEventListener("click", () => showMap(true));
+  $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
+  document.querySelectorAll(".dv-fav").forEach((b) => b.addEventListener("click", () => favTap(b)));
+  function renderSpeed() {
+    let m = null;
+    try { m = JSON.parse(TV.carMotion()); } catch (e) {}
+    const fresh = m && m.speed >= 0 && Date.now() - m.at < 8000;
+    $("dvSpeed").hidden = !fresh;
+    if (fresh) $("dvKmh").textContent = Math.round(m.speed * 3.6);
+  }
+
+  // Now Playing: what plays in any app, from the MK Car Helper (Notification access); the buttons
+  // work even without it (media keys go to the app playing).
+  const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z"/></svg>';
+  const NOTE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3v11.6A3.5 3.5 0 1 0 11 17.7V8h6V3z"/></svg>';
+  const CAST_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M3 12a8 8 0 0 1 8 8M3 16a4 4 0 0 1 4 4"/><circle cx="3.5" cy="19.5" r=".8" fill="currentColor"/></svg>';
+  const MEDIA_APPS = ["com.google.android.youtube", "com.google.android.apps.youtube.music", "com.spotify.music", "com.anghami",
+    "com.apple.android.music", "com.soundcloud.android", "deezer.android.app", "com.amazon.mp3", "net.mbc.shahid", "com.netflix.mediaclient",
+    "com.google.android.apps.podcasts", "au.com.shiftyjelly.pocketcasts", "com.audible.application", "tunein.player", "com.android.fmradio"];
+  let media = {}, playingGuess = null;
+  const fmt = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  window.onMedia = () => {
+    try { media = JSON.parse(TV.mediaState()) || {}; } catch (e) { media = {}; }
+    playingGuess = null;
+    if (screen === 1) renderMedia();
+  };
+  const isPlaying = () => (playingGuess != null ? playingGuess : media.state === 3 || media.state === 6);
+  function renderMedia() {
+    const a = media.pkg && appByPkg(media.pkg);
+    $("mdApp").innerHTML = media.pkg ? `${a && a.icon ? `<img src="${a.icon}" alt="">` : ""}<span>${escapeHtml(a ? a.label : T("nowPlaying"))}</span>` : `<span>${escapeHtml(T("nowPlaying"))}</span>`;
+    $("mdTitle").textContent = media.title || (media.pkg ? (a ? a.label : "") : T("nothing"));
+    $("mdArtist").textContent = media.artist || media.album || "";
+    const art = $("mdArt");
+    if (media.art) { art.style.backgroundImage = `url("${media.art}")`; art.innerHTML = ""; }
+    else { art.style.backgroundImage = ""; art.innerHTML = a && a.icon ? `<img src="${a.icon}" alt="" style="width:46%;height:46%;border-radius:22%">` : NOTE_ICON; }
+    $("mdPlay").innerHTML = isPlaying() ? PAUSE_ICON : PLAY_ICON;
+    renderProgress();
+    // Without the helper, or without its access: say how to see what's playing.
+    let acc = { helper: 0, access: false };
+    try { acc = JSON.parse(TV.mediaAccess()); } catch (e) {}
+    const hint = $("mdHint");
+    if (acc.helper >= 2 && acc.access) hint.hidden = true;
+    else {
+      hint.hidden = false;
+      hint.innerHTML = escapeHtml(T(acc.helper >= 2 ? "needAccess" : "needHelper")) + (acc.helper >= 2 ? `<br><button id="mdAllow">${escapeHtml(T("allow"))}</button>` : "");
+      if ($("mdAllow")) $("mdAllow").addEventListener("click", () => { try { TV.openMediaAccess(); } catch (e) {} });
+    }
+    renderSources();
+  }
+  function renderProgress() {
+    const dur = media.duration || 0;
+    $("mdSeek").classList.toggle("none", !(dur > 0));
+    if (!(dur > 0)) return;
+    let pos = media.position || 0;
+    if (isPlaying() && media.positionAt) pos += (Date.now() - media.positionAt) * (media.speed || 1);
+    pos = Math.min(dur, Math.max(0, pos));
+    $("mdBar").style.width = (pos / dur * 100).toFixed(2) + "%";
+    $("mdPos").textContent = fmt(pos);
+    $("mdDur").textContent = fmt(dur);
+  }
+  // Media apps to start something, the app playing first, and Cast at the end.
+  function renderSources() {
+    const list = [];
+    if (media.pkg && appByPkg(media.pkg)) list.push(media.pkg);
+    for (const p of MEDIA_APPS) if (list.length < 4 && appByPkg(p) && !list.includes(p)) list.push(p);
+    $("mdSources").innerHTML = list.map((p) => { const a = appByPkg(p); return `<button class="md-src" data-p="${escapeHtml(p)}">${a.icon ? `<img src="${a.icon}" alt="">` : ""}</button>`; }).join("") +
+      `<button class="md-src cast" id="mdCast" aria-label="Cast">${CAST_ICON}</button>`;
+  }
+  $("mdSources").addEventListener("click", (e) => {
+    const b = e.target.closest(".md-src");
+    if (!b) return;
+    if (b.id === "mdCast") return cast();
+    const a = appByPkg(b.dataset.p);
+    if (a) launch(a);
+  });
+  const cmd = (c, v = 0) => { try { TV.mediaCommand(c, v); } catch (e) {} };
+  $("mdPlay").addEventListener("click", () => { const was = isPlaying(); cmd("toggle"); playingGuess = !was; $("mdPlay").innerHTML = playingGuess ? PAUSE_ICON : PLAY_ICON; });
+  $("mdPrev").addEventListener("click", () => cmd("previous"));
+  $("mdNext").addEventListener("click", () => cmd("next"));
+  $("mdSeek").addEventListener("click", (e) => {
+    if (!(media.duration > 0)) return;
+    const r = $("mdSeek").querySelector(".md-bar").getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    cmd("seek", f * media.duration);
+    media.position = f * media.duration; media.positionAt = Date.now();
+    renderProgress();
+  });
+  $("mdArt").addEventListener("click", () => cmd("open"));
+  $("mdTitle").addEventListener("click", () => cmd("open"));
+  setInterval(() => { if (!paused && screen === 1) { renderProgress(); renderSpeed(); } }, 1000);
+
+  /* ---------------- Cast: AirPlay / Google Cast through a receiver app ---------------- */
+  // Apps can't be AirPlay or Google Cast receivers on their own, so Cast opens the receiver app on
+  // the head unit (AirScreen, ZLink, Autokit, EasyConnection...); without one it says what to get.
+  const CAST_PKGS = ["com.ionitech.airscreen", "com.zjinnova.zlink", "net.easyconn", "com.carlinkit.autokit", "cn.manstep.phonemirrorBox"];
+  const CAST_NAME = /air\s?play|air\s?screen|airreceiver|\bcast\b|mirror|zlink|carplay|car\s?link|easy\s?conn|autokit|phone\s?link|tlink|screen\s?share/i;
+  const castApps = () => installed.filter((a) => CAST_PKGS.includes(a.package || a.pkg) || CAST_NAME.test(a.label));
+  function cast(anchor) {
+    const list = castApps();
+    if (list.length === 1) return launch(list[0]);
+    if (list.length > 1) return showPop(list.map((a) => [a.label, ICON.split, () => { closePop(); launch(a); }]), anchor || null);
+    document.body.classList.add("cast-open");
+  }
+  $("dkCast").addEventListener("click", () => cast($("dkCast")));
+  $("ciClose").addEventListener("click", () => document.body.classList.remove("cast-open"));
+  $("castInfo").addEventListener("click", (e) => { if (e.target === $("castInfo")) document.body.classList.remove("cast-open"); });
+  $("ciGet").addEventListener("click", () => {
+    document.body.classList.remove("cast-open");
+    try { TV.openUrl("market://details?id=com.ionitech.airscreen"); } catch (e) {}
+  });
+
   /* ---------------- toast: a short note at the bottom ---------------- */
   let toastTimer = null;
   function toast(text) {
@@ -1363,6 +1554,8 @@
   window.onTvHome = () => {
     if (zone === "prompt") return;
     closeDrawer(true);
+    setScreen(0);
+    document.body.classList.remove("cast-open");
     zone = "grid";
     view.main.idx = 0;
     goPage(0, false);
@@ -1380,6 +1573,7 @@
     checkCarLocation();
     tick();
     showDhikr(false);
+    if (screen === 1) { showMap(); try { TV.mediaCommand("state", 0); } catch (e) {} }
   };
 
   /* ---------------- start ---------------- */
@@ -1394,6 +1588,8 @@
   loadApps();
   applyLang();
   renderDock();
+  setScreen(0);
+  window.onMedia();
   tick();
   setInterval(() => { if (!paused) tick(); }, 1000);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); renderGrid(); fitAzkarText(); placeAlert(); });

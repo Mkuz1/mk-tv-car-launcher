@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MK Split Screen (./build.sh helper): an optional, separate helper for the car launcher's Split
-     button. Apps can't start split screen themselves; once you switch this on in Settings →
-     Accessibility, the launcher asks it to press the system's split-screen action. It reads nothing
-     on the screen. Kept out of the launcher APK because some head units refuse apps that declare
-     an accessibility service. -->
+<!-- MK Car Helper (./build.sh helper): an optional, separate helper for the car launcher.
+     Split: apps can't start split screen themselves; once MK Split Screen is on in Settings →
+     Accessibility, the launcher asks it to press the system's split-screen action, and to close a
+     split left behind after Home. Now Playing: with Notification access on, it tells the launcher
+     what's playing in any app and passes on play / pause / next / previous. Kept out of the launcher
+     APK because some head units refuse apps that declare an accessibility service. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mk.splithelper"
-    android:versionCode="1"
-    android:versionName="1.0.0">
+    android:versionCode="2"
+    android:versionName="1.1.0">
 
     <application
-        android:label="@string/split_service_name"
+        android:label="@string/app_name"
         android:icon="@drawable/icon">
 
         <service
@@ -24,10 +25,23 @@
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/split_service" />
         </service>
 
-        <!-- The launcher sends this to dock the app in front to one side. -->
+        <!-- Now Playing: other apps' media sessions (Settings → Notification access → MK Car Helper). -->
+        <service
+            android:name="com.mk.homedash.MediaListener"
+            android:exported="true"
+            android:label="@string/media_service_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- The launcher's requests: split screen, and Now Playing. -->
         <receiver android:name="com.mk.homedash.SplitReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="com.mk.splithelper.TOGGLE_SPLIT" />
+                <action android:name="com.mk.splithelper.CHECK_SPLIT" />
+                <action android:name="com.mk.splithelper.MEDIA" />
             </intent-filter>
         </receiver>
     </application>
