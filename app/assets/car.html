@@ -181,7 +181,7 @@
             <button class="cc-tg" id="ccWifi" aria-label="Wi-Fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg><span>Wi-Fi</span></button>
             <button class="cc-tg" id="ccBt" aria-label="Bluetooth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg><span>Bluetooth</span></button>
             <button class="cc-tg" id="ccCast" aria-label="Cast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M3 12a8 8 0 0 1 8 8M3 16a4 4 0 0 1 4 4"/><circle cx="3.5" cy="19.5" r=".8" fill="currentColor"/></svg><span data-t="cast"></span></button>
-            <button class="cc-tg" id="ccSplit" aria-label="Split screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="4" width="8.5" height="16" rx="2.2"/><rect x="13" y="4" width="8.5" height="16" rx="2.2"/></svg><span data-t="split"></span></button>
+            <button class="cc-tg" id="ccFiles" aria-label="File Transfer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 16v-5M9.5 13.5L12 11l2.5 2.5"/></svg><span data-t="files"></span></button>
           </div>
           <div class="cc-tile cc-media glass">
             <div class="cc-mtext"><div class="cc-mtitle" id="ccMTitle"></div><div class="cc-martist" id="ccMArtist"></div></div>
@@ -201,6 +201,28 @@
           <button class="cc-tile cc-btn glass" id="ccSettings"><span class="cc-bicon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.48.48 0 0 0 .12-.61l-1.92-3.32a.48.48 0 0 0-.59-.21l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54a7.36 7.36 0 0 0-1.62.94l-2.39-.96a.48.48 0 0 0-.59.21L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58a7.4 7.4 0 0 0 0 1.88l-2.03 1.58a.48.48 0 0 0-.12.61l1.92 3.32c.12.21.37.3.59.21l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.36 7.36 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.21l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></span><span data-t="settings"></span></button>
         </section>
         <div class="cc-grab"></div>
+      </div>
+    </div>
+
+    <!-- File Transfer: the car's files in your phone's browser, over Wi-Fi -->
+    <div id="xfer">
+      <div class="xf-panel glass solid">
+        <div class="xf-head">
+          <div><div class="xf-title" data-t="files"></div><div class="xf-sub" id="xfSub"></div></div>
+          <button class="dr-close" id="xfClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="xf-body">
+          <div class="xf-qrs" id="xfQrs"></div>
+          <div class="xf-side">
+            <ol class="xf-steps" id="xfSteps"></ol>
+            <div class="xf-url" id="xfUrl"></div>
+            <div class="xf-log" id="xfLog"></div>
+            <div class="xf-btns">
+              <button class="pk-btn" id="xfHotspot"></button>
+              <button class="pk-btn main" id="xfToggle"></button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -251,6 +273,7 @@
   <script src="praytimes.js"></script>
   <script src="azkar.js"></script>
   <script src="dash.js"></script>
+  <script src="qrcode.js"></script>
   <script src="car.js"></script>
 </body>
 </html>

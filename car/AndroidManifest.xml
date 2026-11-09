@@ -6,8 +6,8 @@
      No screensaver in the car. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mk.carlauncher"
-    android:versionCode="27"
-    android:versionName="2.7.0">
+    android:versionCode="28"
+    android:versionName="2.8.0">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -17,6 +17,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <!-- File Transfer: the car's storage, shared with your phone while you switch it on. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- Prayer times follow the car (GPS); silent prayer banners over other apps -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -39,6 +42,7 @@
         android:label="@string/app_name"
         android:icon="@drawable/icon"
         android:hardwareAccelerated="true"
+        android:requestLegacyExternalStorage="true"
         android:largeHeap="true"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
 

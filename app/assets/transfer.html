@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1418">
+<title>MK Car · Files</title>
+<style>
+  :root {
+    --ink: #fff; --ink-2: rgba(255,255,255,.72); --ink-3: rgba(255,255,255,.5); --gold: #E2BC74;
+    --glass: linear-gradient(160deg, rgba(255,255,255,.18), rgba(255,255,255,.06) 45%, rgba(255,255,255,.04)), rgba(16,24,30,.55);
+    --rim: inset 0 1px 0 rgba(255,255,255,.45), inset 0 0 0 1px rgba(255,255,255,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; color: var(--ink);
+    background: radial-gradient(120% 80% at 10% 0%, #2a5a5c 0%, transparent 55%), radial-gradient(120% 90% at 100% 30%, #2b3f73 0%, transparent 55%),
+      radial-gradient(100% 70% at 50% 100%, #6b5634 0%, transparent 60%), #0B1418;
+    background-attachment: fixed; padding: env(safe-area-inset-top) 0 calc(110px + env(safe-area-inset-bottom));
+  }
+  button, input { font: inherit; color: inherit; }
+  button { background: none; border: 0; cursor: pointer; }
+  .glass { background: var(--glass); box-shadow: var(--rim), 0 12px 30px rgba(0,0,0,.28); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); }
+  header { padding: 18px 18px 8px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--ink-2); letter-spacing: .4px; text-transform: uppercase; }
+  .brand b { font-family: Georgia, serif; font-size: 20px; letter-spacing: 3px; color: #fff; text-transform: none; }
+  .brand b em { font-style: normal; color: var(--gold); margin: 0 3px; }
+  h1 { font-size: 32px; font-weight: 800; margin-top: 6px; letter-spacing: -.5px; }
+  .roots { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+  .roots button { white-space: nowrap; height: 36px; padding: 0 16px; border-radius: 18px; font-weight: 600; font-size: 15px; }
+  .roots button.on { background: #fff; color: #111; box-shadow: none; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; padding: 10px 18px 4px; font-size: 15px; color: var(--ink-2); }
+  .crumbs button { padding: 4px 6px; border-radius: 8px; color: var(--ink-2); }
+  .crumbs button:last-child { color: #fff; font-weight: 700; }
+  .crumbs span { color: var(--ink-3); }
+  .list { margin: 8px 12px; border-radius: 22px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; min-height: 64px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .row:last-child { border-bottom: 0; }
+  .row:active { background: rgba(255,255,255,.08); }
+  .ic { width: 42px; height: 42px; border-radius: 11px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; letter-spacing: .3px; }
+  .ic.dir { background: linear-gradient(180deg, #5AB0FF, #2F7BE0); }
+  .ic.dir svg { width: 24px; height: 24px; }
+  .ic.file { background: rgba(255,255,255,.14); color: var(--ink-2); }
+  .ic.img { background: linear-gradient(180deg, #FF8A65, #E0533A); color: #fff; }
+  .ic.vid { background: linear-gradient(180deg, #B388FF, #7C4DFF); color: #fff; }
+  .ic.aud { background: linear-gradient(180deg, #FF6B9A, #E0336B); color: #fff; }
+  .ic.apk { background: linear-gradient(180deg, #7CDE8E, #2FB04A); color: #fff; }
+  .meta { flex: 1; min-width: 0; }
+  .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+  .more { width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-2); flex: 0 0 auto; }
+  .more:active { background: rgba(255,255,255,.12); }
+  .empty { padding: 40px 20px; text-align: center; color: var(--ink-3); }
+  .free { text-align: center; font-size: 13px; color: var(--ink-3); margin: 6px 0 14px; }
+  .bar { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 10px; padding: 10px; border-radius: 28px; z-index: 5; }
+  .bar button { flex: 1; height: 56px; border-radius: 20px; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .bar .up { background: #0A84FF; flex: 1.6; }
+  .bar .nf { background: rgba(255,255,255,.14); }
+  .bar svg { width: 22px; height: 22px; }
+  .jobs { position: fixed; left: 12px; right: 12px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 4; display: flex; flex-direction: column; gap: 8px; }
+  .job { padding: 12px 14px; border-radius: 18px; font-size: 14px; }
+  .job .t { display: flex; justify-content: space-between; gap: 10px; }
+  .job .t b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .job .p { height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); margin-top: 8px; overflow: hidden; }
+  .job .p i { display: block; height: 100%; width: 0; background: #0A84FF; transition: width .2s; }
+  .job.done .p i { background: #30D158; }
+  .job.err .p i { background: #FF453A; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 9; display: none; }
+  .sheet { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 10; border-radius: 26px; padding: 8px; display: none; }
+  .sheet.on, .sheet-bg.on { display: block; }
+  .sheet .ttl { text-align: center; font-size: 13px; color: var(--ink-3); padding: 10px 14px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet button { display: block; width: 100%; height: 56px; border-radius: 16px; font-size: 18px; font-weight: 600; }
+  .sheet button:active { background: rgba(255,255,255,.1); }
+  .sheet .danger { color: #FF6961; }
+  .drop { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; background: rgba(10,132,255,.25); border: 3px dashed #0A84FF; }
+  body.dragging .drop { display: flex; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand"><b>M<em>&amp;</em>D</b> MK Car Launcher</div>
+    <h1 id="title">Files</h1>
+    <div class="roots" id="roots"></div>
+  </header>
+  <div class="crumbs" id="crumbs"></div>
+  <div class="list glass" id="list"></div>
+  <div class="free" id="free"></div>
+
+  <div class="jobs" id="jobs"></div>
+  <div class="bar glass">
+    <button class="nf" id="newFolder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>Folder</button>
+    <button class="up" id="upload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload here</button>
+  </div>
+  <input type="file" id="picker" multiple hidden>
+
+  <div class="sheet-bg" id="sheetBg"></div>
+  <div class="sheet glass" id="sheet"><div class="ttl" id="sheetTitle"></div><div id="sheetBtns"></div></div>
+  <div class="drop">Drop to upload into this folder</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const key = new URLSearchParams(location.search).get("k") || "";
+  const q = (o) => Object.entries(Object.assign({ k: key }, o)).map(([a, b]) => a + "=" + encodeURIComponent(b)).join("&");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const size = (n) => n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(0) + " KB" : n < 1073741824 ? (n / 1048576).toFixed(1) + " MB" : (n / 1073741824).toFixed(2) + " GB";
+  let roots = [], root = null, cwd = null, entries = [];
+
+  async function api(path, params, method = "GET", body) {
+    const r = await fetch(path + "?" + q(params || {}), { method, body, headers: { "X-Key": key } });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  async function start() {
+    roots = await api("/api/roots");
+    const saved = sessionStorage.getItem("cwd");
+    root = roots[0];
+    open(saved && roots.some((r) => saved.startsWith(r.path)) ? saved : root.path);
+  }
+  function rootOf(p) { return roots.filter((r) => p === r.path || p.startsWith(r.path + "/")).sort((a, b) => b.path.length - a.path.length)[0] || roots[0]; }
+  async function open(path) {
+    try {
+      const d = await api("/api/list", { path });
+      cwd = d.path; entries = d.entries; root = rootOf(cwd);
+      sessionStorage.setItem("cwd", cwd);
+      $("free").textContent = size(d.free) + " free";
+      render();
+    } catch (e) {
+      $("list").innerHTML = `<div class="empty">Can't open this folder.<br>${esc(e.message)}<br><br>If it's the first time, allow storage access on the car screen, then reload.</div>`;
+    }
+  }
+  function render() {
+    $("roots").innerHTML = roots.map((r, i) => `<button class="glass ${r === root ? "on" : ""}" data-i="${i}">${esc(r.name)}</button>`).join("");
+    const rel = cwd.slice(root.path.length).split("/").filter(Boolean);
+    $("title").textContent = rel.length ? rel[rel.length - 1] : root.name;
+    let acc = root.path;
+    $("crumbs").innerHTML = `<button data-p="${esc(root.path)}">${esc(root.name)}</button>` +
+      rel.map((n) => { acc += "/" + n; return `<span>›</span><button data-p="${esc(acc)}">${esc(n)}</button>`; }).join("");
+    const list = entries.slice().sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+    entries = list;
+    $("list").innerHTML = list.length ? list.map((e, i) => {
+      const ext = (e.name.split(".").pop() || "").toLowerCase();
+      const kind = e.dir ? "dir" : /^(jpe?g|png|gif|heic|webp)$/.test(ext) ? "img" : /^(mp4|mov|mkv|avi|3gp)$/.test(ext) ? "vid" : /^(mp3|m4a|aac|flac|wav|ogg)$/.test(ext) ? "aud" : ext === "apk" ? "apk" : "file";
+      const icon = e.dir ? '<svg viewBox="0 0 24 24" fill="#fff"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></svg>' : esc(ext.slice(0, 4).toUpperCase() || "FILE");
+      const when = new Date(e.time).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+      return `<div class="row" data-i="${i}"><div class="ic ${kind}">${icon}</div><div class="meta"><div class="name">${esc(e.name)}</div><div class="sub">${e.dir ? when : size(e.size) + " · " + when}</div></div>` +
+        `<button class="more" data-m="${i}" aria-label="More"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>`;
+    }).join("") : `<div class="empty">This folder is empty.<br>Tap Upload here to send files from your phone.</div>`;
+  }
+  const child = (n) => cwd + "/" + n;
+  $("roots").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) open(roots[+b.dataset.i].path); });
+  $("crumbs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) open(b.dataset.p); });
+  $("list").addEventListener("click", (e) => {
+    const m = e.target.closest(".more");
+    if (m) return menu(entries[+m.dataset.m]);
+    const r = e.target.closest(".row");
+    if (!r) return;
+    const it = entries[+r.dataset.i];
+    if (it.dir) open(child(it.name)); else download(it);
+  });
+  function download(it) {
+    const a = document.createElement("a");
+    a.href = "/api/file?" + q({ path: child(it.name) });
+    a.download = it.name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function menu(it) {
+    const btns = [];
+    if (!it.dir) btns.push(["Download to phone", () => download(it)]);
+    else btns.push(["Open", () => open(child(it.name))]);
+    btns.push(["Rename", async () => {
+      const n = prompt("New name", it.name);
+      if (!n || n === it.name) return;
+      try { await api("/api/rename", { path: child(it.name), name: n }, "POST"); open(cwd); } catch (e) { alert(e.message); }
+    }]);
+    btns.push(["Delete", async () => {
+      if (!confirm(`Delete “${it.name}” from the car${it.dir ? " with everything in it" : ""}?`)) return;
+      try { await api("/api/delete", { path: child(it.name) }, "POST"); open(cwd); } catch (e) { alert(e.message); }
+    }, "danger"]);
+    btns.push(["Cancel", () => {}]);
+    $("sheetTitle").textContent = it.name;
+    $("sheetBtns").innerHTML = btns.map(([t, , c], i) => `<button class="${c || ""}" data-i="${i}">${esc(t)}</button>`).join("");
+    $("sheetBtns").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; closeSheet(); btns[+b.dataset.i][1](); };
+    $("sheet").classList.add("on"); $("sheetBg").classList.add("on");
+  }
+  function closeSheet() { $("sheet").classList.remove("on"); $("sheetBg").classList.remove("on"); }
+  $("sheetBg").addEventListener("click", closeSheet);
+  $("newFolder").addEventListener("click", async () => {
+    const n = prompt("Folder name", "New Folder");
+    if (!n) return;
+    try { await api("/api/mkdir", { path: cwd, name: n }, "POST"); open(cwd); } catch (e) { alert(e.message); }
+  });
+  $("upload").addEventListener("click", () => $("picker").click());
+  $("picker").addEventListener("change", () => { upload([...$("picker").files]); $("picker").value = ""; });
+  // Uploads one after the other, each with its progress bar.
+  let queue = Promise.resolve();
+  function upload(files) {
+    for (const f of files) {
+      const el = document.createElement("div");
+      el.className = "job glass";
+      el.innerHTML = `<div class="t"><b>${esc(f.name)}</b><span>${size(f.size)}</span></div><div class="p"><i></i></div>`;
+      $("jobs").appendChild(el);
+      const dir = cwd;
+      queue = queue.then(() => new Promise((done) => {
+        const x = new XMLHttpRequest();
+        x.open("POST", "/api/upload?" + q({ path: dir, name: f.name }));
+        x.setRequestHeader("X-Key", key);
+        x.upload.onprogress = (e) => { if (e.lengthComputable) el.querySelector("i").style.width = (e.loaded / e.total * 100).toFixed(1) + "%"; };
+        x.onload = () => { el.classList.add(x.status === 200 ? "done" : "err"); el.querySelector("i").style.width = "100%"; if (x.status !== 200) el.querySelector("span").textContent = "Failed"; finish(); };
+        x.onerror = () => { el.classList.add("err"); el.querySelector("span").textContent = "Failed"; finish(); };
+        function finish() { if (cwd === dir) open(cwd); setTimeout(() => el.remove(), 2500); done(); }
+        x.send(f);
+      }));
+    }
+  }
+  // Drag and drop from a computer.
+  addEventListener("dragover", (e) => { e.preventDefault(); document.body.classList.add("dragging"); });
+  addEventListener("dragleave", (e) => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
+  addEventListener("drop", (e) => { e.preventDefault(); document.body.classList.remove("dragging"); upload([...e.dataTransfer.files]); });
+  start().catch((e) => { $("list").innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
+})();
+</script>
+</body>
+</html>

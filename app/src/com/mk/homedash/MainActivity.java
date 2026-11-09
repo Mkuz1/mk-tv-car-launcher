@@ -196,6 +196,7 @@ public class MainActivity extends Activity {
         unregisterReceiver(packages);
         if (car) unregisterReceiver(media);
         if (location != null) location.stop();
+        if (car) FileServer.stop();
         super.onDestroy();
     }
 

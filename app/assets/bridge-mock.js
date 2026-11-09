@@ -57,6 +57,10 @@
     appWidgetShot: () => {},
     deleteAppWidget: (id) => console.log("delete widget", id),
     mediaState: () => JSON.stringify(/media=0/.test(location.search) ? {} : { pkg: "com.spotify.music", title: "Al-Fatiha Recitation", artist: "Mishary Rashid Alafasy", album: "Quran", duration: 245000, state: 3, speed: 1, position: 61000, positionAt: Date.now() - 5000 }),
+    transferState: () => JSON.stringify(window.__xs || { on: false, ips: ["172.20.10.3"], storage: true }),
+    transferStart: () => { window.__xs = { on: true, port: 8080, key: "a1b2c3d4e5f6", ips: ["172.20.10.3"], storage: true, hotspot: window.__hot || null }; return JSON.stringify(window.__xs); },
+    transferStop: () => { window.__xs = { on: false, ips: ["172.20.10.3"], storage: true }; },
+    hotspot: (on) => { window.__hot = on ? { ssid: "DIRECT-MK-Car", pass: "x7k2m9q4" } : null; if (window.__xs) window.__xs.hotspot = window.__hot; setTimeout(() => window.onHotspot(null), 200); },
     notifications: () => JSON.stringify([
       { key: "1", pkg: "com.whatsapp", app: "WhatsApp", title: "Mum", text: "Are you coming for dinner tonight? We're making machboos", time: Date.now() - 120000, clear: true },
       { key: "2", pkg: "com.google.android.apps.maps", app: "Maps", title: "Traffic on E11", text: "Heavy traffic ahead, 12 min delay", time: Date.now() - 1500000, clear: true },

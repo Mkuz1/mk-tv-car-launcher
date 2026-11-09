@@ -590,3 +590,33 @@ body.cc-drag .cc-sheet, body.cc-drag #cc { transition: none; }
 #ccMode.on { background: var(--gold-pill); color: var(--gold-ink); box-shadow: var(--gold-pill-rim); }
 body.rtl .cc-h, body.rtl .cc-clear, body.rtl .cc-tg, body.rtl .cc-btn, body.rtl .cc-empty { font-family: "Amiri", serif; }
 body.portrait .cc-sheet { grid-template-columns: 1fr; grid-template-rows: 1fr 1.2fr; }
+
+/* ---------- File Transfer ---------- */
+#xfer { position: absolute; inset: 0; z-index: 21; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+body.xfer-open #xfer { opacity: 1; pointer-events: auto; }
+.xf-panel { position: absolute; left: 50%; top: 50%; width: 1100px; max-width: calc(100% - 60px); height: 600px; max-height: calc(100% - 40px); transform: translate(-50%, -50%) scale(.96); transition: transform .4s var(--spring); border-radius: 40px; padding: 24px 30px; display: flex; flex-direction: column; }
+body.xfer-open .xf-panel { transform: translate(-50%, -50%); }
+.xf-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.xf-head .dr-close { position: static; }
+.xf-title { font-size: 32px; font-weight: 800; }
+.xf-sub { font-size: 18px; color: var(--ink-2); margin-top: 4px; }
+.xf-body { flex: 1; min-height: 0; display: flex; gap: 30px; margin-top: 16px; }
+.xf-qrs { display: flex; gap: 18px; flex: 0 0 auto; align-items: flex-start; }
+.xf-qr { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.xf-qr .box { width: 300px; height: 300px; border-radius: 26px; background: #fff; padding: 16px; box-shadow: 0 14px 30px rgba(0,0,0,.35); }
+.xf-qr .box img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.xf-qr span { font-size: 17px; font-weight: 600; color: var(--ink-2); }
+.xf-qrs.two .box { width: 240px; height: 240px; }
+.xf-off { width: 300px; height: 300px; border-radius: 26px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 30px; font-size: 20px; color: var(--ink-2); background: rgba(255,255,255,0.08); }
+.xf-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.xf-steps { padding-left: 26px; font-size: 20px; line-height: 1.45; color: var(--ink); }
+.xf-steps li { margin-bottom: 6px; }
+.xf-steps b { color: var(--gold-soft); }
+.xf-url { font-size: 18px; color: var(--ink-2); word-break: break-all; font-variant-numeric: tabular-nums; }
+.xf-url b { color: #fff; }
+.xf-log { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; font-size: 17px; color: var(--ink-2); }
+.xf-log div { padding: 8px 14px; border-radius: 14px; background: rgba(255,255,255,0.08); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xf-btns { display: flex; gap: 12px; justify-content: flex-end; }
+body.rtl .xf-title, body.rtl .xf-sub, body.rtl .xf-steps, body.rtl .xf-log { font-family: "Amiri", serif; }
+body.rtl .xf-steps { padding-left: 0; padding-right: 26px; }
+#ccFiles.on svg { background: #0A84FF; }

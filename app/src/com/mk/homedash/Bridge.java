@@ -372,6 +372,106 @@ public class Bridge {
         startFirst(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + context.getPackageName())), new Intent(Settings.ACTION_SETTINGS));
     }
 
+    /* Car: File Transfer (FileServer). */
+
+    private boolean storageOk() {
+        if (android.os.Build.VERSION.SDK_INT < 23) return true;
+        return context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                || android.os.Build.VERSION.SDK_INT >= 30;
+    }
+
+    /** {on, port, key, ips: [...], storage: allowed, hotspot: {ssid, pass} or null}. */
+    @JavascriptInterface
+    public String transferState() {
+        JSONObject o = new JSONObject();
+        try {
+            FileServer f = FileServer.current();
+            o.put("on", f != null);
+            if (f != null) { o.put("port", f.port()); o.put("key", f.key()); }
+            o.put("ips", new JSONArray(FileServer.addresses()));
+            o.put("storage", storageOk());
+            if (hotspotSsid != null) o.put("hotspot", new JSONObject().put("ssid", hotspotSsid).put("pass", hotspotPass));
+        } catch (Exception ignored) { }
+        return o.toString();
+    }
+
+    @JavascriptInterface
+    public String transferStart() {
+        if (!storageOk() && context instanceof Activity) {
+            final Activity a = (Activity) context;
+            main.post(new Runnable() {
+                @Override public void run() {
+                    a.requestPermissions(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 9);
+                }
+            });
+        }
+        try {
+            FileServer.start(context, new FileServer.Listener() {
+                @Override public void onEvent(final String json) {
+                    main.post(new Runnable() {
+                        @Override public void run() {
+                            if (view != null) ((WebView) view).evaluateJavascript("window.onTransfer && window.onTransfer(" + json + ")", null);
+                        }
+                    });
+                }
+            });
+        } catch (Exception e) {
+            Log.w("HomeDash", "file server: " + e);
+        }
+        return transferState();
+    }
+
+    @JavascriptInterface
+    public void transferStop() {
+        FileServer.stop();
+        hotspot(false);
+    }
+
+    // The car's own Wi-Fi for File Transfer (Android's local-only hotspot: no internet through it).
+    private static Object hotspotReservation;
+    private static String hotspotSsid, hotspotPass;
+
+    @JavascriptInterface
+    public void hotspot(final boolean on) {
+        main.post(new Runnable() {
+            @Override public void run() {
+                if (!on) {
+                    try { if (hotspotReservation != null) ((android.net.wifi.WifiManager.LocalOnlyHotspotReservation) hotspotReservation).close(); } catch (Exception ignored) { }
+                    hotspotReservation = null; hotspotSsid = null; hotspotPass = null;
+                    return;
+                }
+                try {
+                    WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    wm.startLocalOnlyHotspot(new WifiManager.LocalOnlyHotspotCallback() {
+                        @Override public void onStarted(WifiManager.LocalOnlyHotspotReservation r) {
+                            hotspotReservation = r;
+                            try {
+                                if (android.os.Build.VERSION.SDK_INT >= 30) {
+                                    android.net.wifi.SoftApConfiguration c = r.getSoftApConfiguration();
+                                    hotspotSsid = c.getSsid(); hotspotPass = c.getPassphrase();
+                                } else {
+                                    android.net.wifi.WifiConfiguration c = r.getWifiConfiguration();
+                                    hotspotSsid = c.SSID; hotspotPass = c.preSharedKey;
+                                }
+                            } catch (Exception ignored) { }
+                            hotspotJs(null);
+                        }
+                        @Override public void onFailed(int reason) { hotspotJs("failed " + reason); }
+                        @Override public void onStopped() { hotspotReservation = null; hotspotSsid = null; hotspotPass = null; hotspotJs(null); }
+                    }, main);
+                } catch (Exception e) {
+                    hotspotJs(String.valueOf(e.getMessage()));
+                }
+            }
+        });
+    }
+
+    private void hotspotJs(String error) {
+        if (view == null) return;
+        ((WebView) view).evaluateJavascript("window.onHotspot && window.onHotspot(" + (error == null ? "null" : JSONObject.quote(error)) + ")", null);
+    }
+
     /** When the last split-screen pair was opened (ms). */
     static volatile long splitLaunchAt = 0;
 

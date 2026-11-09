@@ -56,6 +56,16 @@
       noNotifs: "No notifications", notifHelper: "To see your notifications here, install MK Car Helper (mk-split-helper.apk, 1.2 or later).",
       notifAccess: "To see your notifications here, allow MK Car Helper in Notification access.", now: "now",
       ago: (m) => (m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ago`), allowAll: "Brightness for all apps: allow",
+      files: "File Transfer", xfOn: "On: your phone can open the car's files", xfOff: "Off",
+      xfStep1: "Connect your phone to the <b>same Wi-Fi</b> as the car (your iPhone's hotspot works).",
+      xfStep1Hot: (s, p) => `Join the car's Wi-Fi <b>${s}</b> (password <b>${p}</b>): scan the first code.`,
+      xfStep2: "Scan the code with the <b>camera</b> and open the page.", xfStep3: "Browse the car's folders, <b>Upload here</b>, download, rename or delete.",
+      xfNoWifi: "The car isn't on Wi-Fi. Connect it to your phone's hotspot, or create the car's own Wi-Fi.",
+      xfStart: "Start", xfStop: "Stop sharing", xfHotOn: "Create car Wi-Fi", xfHotOff: "Stop car Wi-Fi",
+      xfHotNote: "The car's own Wi-Fi has no internet; while it's on, the car may leave your hotspot.",
+      xfStorage: "Allow storage access on this screen when Android asks, then the files appear.",
+      xfReceived: (n, f, s) => `Received ${n} (${s}) in ${f}`, xfDeleted: (n) => `Deleted ${n}`,
+      xfJoin: "Car Wi-Fi", xfOpen: "Open files", xfHotFail: "Couldn't create the car's Wi-Fi (turn on Location and try again)",
     },
     ar: {
       apps: "التطبيقات", moveHint: "اسحب التطبيق أو اضغط حيث تريد نقله", done: "تم",
@@ -92,6 +102,16 @@
       noNotifs: "لا توجد إشعارات", notifHelper: "لعرض إشعاراتك هنا، ثبّت MK Car Helper ‏(mk-split-helper.apk الإصدار 1.2 أو أحدث).",
       notifAccess: "لعرض إشعاراتك هنا، اسمح لـ MK Car Helper في الوصول إلى الإشعارات.", now: "الآن",
       ago: (m) => (m < 60 ? `قبل ${m} د` : `قبل ${Math.floor(m / 60)} س`), allowAll: "سطوع لكل التطبيقات: سماح",
+      files: "نقل الملفات", xfOn: "يعمل: يمكن لهاتفك فتح ملفات السيارة", xfOff: "متوقف",
+      xfStep1: "صِل هاتفك <b>بنفس شبكة Wi-Fi</b> المتصلة بها السيارة (نقطة اتصال الآيفون تعمل).",
+      xfStep1Hot: (s, p) => `اتصل بشبكة السيارة <b>${s}</b> (كلمة المرور <b>${p}</b>): امسح الرمز الأول.`,
+      xfStep2: "امسح الرمز <b>بالكاميرا</b> وافتح الصفحة.", xfStep3: "تصفّح مجلدات السيارة، <b>ارفع هنا</b>، نزّل، أعد التسمية أو احذف.",
+      xfNoWifi: "السيارة غير متصلة بشبكة Wi-Fi. صِلها بنقطة اتصال هاتفك، أو أنشئ شبكة السيارة.",
+      xfStart: "تشغيل", xfStop: "إيقاف المشاركة", xfHotOn: "إنشاء شبكة السيارة", xfHotOff: "إيقاف شبكة السيارة",
+      xfHotNote: "شبكة السيارة بلا إنترنت، وقد تنفصل السيارة عن نقطة الاتصال أثناء تشغيلها.",
+      xfStorage: "اسمح بالوصول إلى التخزين عندما يطلب Android، ثم تظهر الملفات.",
+      xfReceived: (n, f, s) => `تم استلام ${n} (${s}) في ${f}`, xfDeleted: (n) => `تم حذف ${n}`,
+      xfJoin: "شبكة السيارة", xfOpen: "فتح الملفات", xfHotFail: "تعذّر إنشاء شبكة السيارة (شغّل الموقع وحاول مجدداً)",
     },
   };
   let lang = store.get("car.lang", /^ar/.test(navigator.language || "") ? "ar" : "en");
@@ -1647,12 +1667,15 @@
     $("ccModeIcon").innerHTML = $("modeSeg").children[comfort].innerHTML;
     $("ccModeName").textContent = T(names[comfort]);
     $("ccMode").classList.toggle("on", comfort > 0);
+    let xs = {};
+    try { xs = JSON.parse(TV.transferState()); } catch (e) {}
+    $("ccFiles").classList.toggle("on", !!xs.on);
   }
   const later = (f) => setTimeout(() => { if (ccOpen()) f(); }, 900);
   $("ccWifi").addEventListener("click", () => { try { if (!TV.setWifi(!quick.wifi)) closeCC(); } catch (e) {} quick.wifi = !quick.wifi; $("ccWifi").classList.toggle("on", !!quick.wifi); later(renderQuick); });
   $("ccBt").addEventListener("click", () => { try { if (!TV.setBluetooth(quick.bt !== 1)) closeCC(); } catch (e) {} quick.bt = quick.bt === 1 ? 0 : 1; $("ccBt").classList.toggle("on", quick.bt === 1); later(renderQuick); });
   $("ccCast").addEventListener("click", () => { closeCC(); cast(); });
-  $("ccSplit").addEventListener("click", () => { closeCC(); splitMenu(); });
+  $("ccFiles").addEventListener("click", () => { closeCC(); openXfer(); });
   $("ccSettings").addEventListener("click", () => { closeCC(); try { TV.openSettings(); } catch (e) {} });
   $("ccMode").addEventListener("click", () => { setComfort((comfort + 1) % 3); renderQuick(); });
   function setSlider(el, f) {
@@ -1694,6 +1717,61 @@
     cmd(b.dataset.c);
   });
 
+  /* ---------------- File Transfer: the car's files in your phone's browser ---------------- */
+  // Starts a small web server on the head unit (only while on). The phone, on the same Wi-Fi (your
+  // iPhone's hotspot, or the car's own Wi-Fi made here), scans the QR code and gets a file browser:
+  // upload into any folder, download, new folder, rename, delete. A new key each time it starts.
+  let xs = {}, xfLog = [];
+  const qrImg = (text) => {
+    try { const q = qrcode(0, "M"); q.addData(text); q.make(); return `<img src="${q.createDataURL(8, 0)}" alt="">`; } catch (e) { return ""; }
+  };
+  const fsize = (n) => (n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB");
+  function openXfer() {
+    document.body.classList.add("xfer-open");
+    try { xs = JSON.parse(TV.transferStart()); } catch (e) { xs = {}; }
+    renderXfer();
+    // The address can take a moment (Wi-Fi, the car's hotspot): look again shortly.
+    setTimeout(() => { if (has("xfer-open")) { try { xs = JSON.parse(TV.transferState()); } catch (e) {} renderXfer(); } }, 1500);
+  }
+  function closeXfer() { document.body.classList.remove("xfer-open"); }
+  function renderXfer() {
+    const ip = (xs.ips || [])[0], hot = xs.hotspot;
+    const url = xs.on && ip ? `http://${ip}:${xs.port}/?k=${xs.key}` : "";
+    $("xfSub").textContent = xs.on ? T("xfOn") : T("xfOff");
+    const qrs = [];
+    if (hot) {
+      const esc2 = (v) => String(v || "").replace(/([\\;,:"])/g, "\\$1");
+      qrs.push(`<div class="xf-qr"><div class="box">${qrImg(`WIFI:T:WPA;S:${esc2(hot.ssid)};P:${esc2(hot.pass)};;`)}</div><span>${escapeHtml(T("xfJoin"))}</span></div>`);
+    }
+    qrs.push(url ? `<div class="xf-qr"><div class="box">${qrImg(url)}</div><span>${escapeHtml(T("xfOpen"))}</span></div>` : `<div class="xf-off">${escapeHtml(xs.on ? T("xfNoWifi") : T("xfOff"))}</div>`);
+    $("xfQrs").innerHTML = qrs.join("");
+    $("xfQrs").classList.toggle("two", qrs.length > 1);
+    const step1 = hot ? T("xfStep1Hot", escapeHtml(hot.ssid || ""), escapeHtml(hot.pass || "")) : T("xfStep1");
+    $("xfSteps").innerHTML = `<li>${step1}</li><li>${T("xfStep2")}</li><li>${T("xfStep3")}</li>` + (xs.on && !xs.storage ? `<li>${T("xfStorage")}</li>` : "");
+    $("xfUrl").innerHTML = url ? `<b>http://${escapeHtml(ip)}:${xs.port}</b>` + (hot ? "" : "") : hot ? "" : escapeHtml(T("xfHotNote"));
+    $("xfLog").innerHTML = xfLog.slice(-4).reverse().map((l) => `<div>${escapeHtml(l)}</div>`).join("");
+    $("xfToggle").textContent = T(xs.on ? "xfStop" : "xfStart");
+    $("xfHotspot").textContent = T(hot ? "xfHotOff" : "xfHotOn");
+  }
+  window.onTransfer = (e) => {
+    xfLog.push(e.what === "received" ? T("xfReceived", e.name, e.folder, fsize(e.size)) : T("xfDeleted", e.name));
+    if (e.what === "received") toast(T("xfReceived", e.name, e.folder, fsize(e.size)));
+    if (has("xfer-open")) renderXfer();
+  };
+  window.onHotspot = (err) => {
+    if (err) toast(T("xfHotFail"));
+    try { xs = JSON.parse(TV.transferState()); } catch (e) {}
+    if (has("xfer-open")) renderXfer();
+    setTimeout(() => { try { xs = JSON.parse(TV.transferState()); } catch (e) {} if (has("xfer-open")) renderXfer(); }, 2500);
+  };
+  $("xfToggle").addEventListener("click", () => {
+    if (xs.on) { try { TV.transferStop(); } catch (e) {} try { xs = JSON.parse(TV.transferState()); } catch (e) { xs = {}; } renderXfer(); }
+    else openXfer();
+  });
+  $("xfHotspot").addEventListener("click", () => { try { TV.hotspot(!xs.hotspot); } catch (e) {} });
+  $("xfClose").addEventListener("click", closeXfer);
+  $("xfer").addEventListener("click", (e) => { if (e.target === $("xfer")) closeXfer(); });
+
   /* ---------------- toast: a short note at the bottom ---------------- */
   let toastTimer = null;
   function toast(text) {
@@ -1733,6 +1811,7 @@
     clearTimeout(azTimer); // nothing changes on screen while another app is in front
   };
   window.onTvBack = () => {
+    if (has("xfer-open")) return closeXfer();
     if (has("cc-open")) return closeCC();
     if (has("picker-open")) return closePicker();
     if (has("qibla-open")) return closeQibla();
