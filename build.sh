@@ -8,6 +8,8 @@
 #                       the app picks the car home screen from the manifest's "flavor".
 # Needs JDK 17+ and an Android SDK with build-tools and a platform (tools/setup-sdk.sh installs both).
 #
+# With BUNDLETOOL=path/to/bundletool-all.jar each app is also built as an .aab for Google Play.
+#
 # Signing: a local keystore is created in keystore/ on first build. To sign with your own,
 # set KEYSTORE_FILE, KEYSTORE_PASSWORD and KEYSTORE_ALIAS.
 set -euo pipefail
@@ -73,6 +75,28 @@ build() {
     --out "$APK" "$B/aligned.apk"
   "$BT/apksigner" verify --min-sdk-version "$3" "$APK"
   echo "Built $APK ($(du -h "$APK" | cut -f1))"
+  [ -n "${BUNDLETOOL:-}" ] && bundle "$@"
+  return 0
+}
+
+# bundle <same arguments as build>: the same app as an Android App Bundle (.aab) for Google Play,
+# signed with the same key (Play re-signs it with the app signing key it holds).
+# Needs BUNDLETOOL=path/to/bundletool-all.jar; uses the dex and compiled resources build() made.
+bundle() {
+  local B=$OUT/build-$1 AAB=$OUT/${4%.apk}.aab EXTRA=() ASSETS=(-A app/assets)
+  if [ -n "${5:-}" ]; then EXTRA=(-R "$B/res/extra.zip" --auto-add-overlay); ASSETS=(); fi
+  rm -rf "$B/base" "$B/base.zip" "$B/proto.zip"
+  "$BT/aapt2" link --proto-format -o "$B/proto.zip" -I "$JAR" \
+    --manifest "$2" ${ASSETS[@]+"${ASSETS[@]}"} \
+    --min-sdk-version "$3" --target-sdk-version 34 "$B/res/res.zip" ${EXTRA[@]+"${EXTRA[@]}"}
+  mkdir -p "$B/base/manifest" "$B/base/dex"
+  (cd "$B/base" && unzip -q ../proto.zip && mv AndroidManifest.xml manifest/)
+  cp "$B/dex/classes.dex" "$B/base/dex/"
+  (cd "$B/base" && zip -qr ../base.zip .)
+  java -jar "$BUNDLETOOL" build-bundle --modules="$B/base.zip" --output="$AAB" --overwrite
+  jarsigner -keystore "$KS" -storepass "$PASS" -keypass "$PASS" -sigalg SHA256withRSA -digestalg SHA-256 "$AAB" "$ALIAS" >/dev/null
+  jarsigner -verify "$AAB" >/dev/null
+  echo "Built $AAB ($(du -h "$AAB" | cut -f1))"
 }
 
 mkdir -p "$OUT"

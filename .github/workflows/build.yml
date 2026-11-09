@@ -1,6 +1,6 @@
 name: Build
 
-# Builds both APKs (Google TV and car) on every push and pull request. Pushing a tag like v1.2.0, or a new
+# Builds the APKs (and, with bundletool, Android App Bundles for Google Play) on every push and pull request. Pushing a tag like v1.2.0, or a new
 # versionName reaching main, also publishes a GitHub release with both APKs, signed with the key stored in the repository secrets
 # (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEYSTORE_ALIAS) so updates install over earlier versions.
 on:
@@ -36,7 +36,14 @@ jobs:
             echo "No signing secret (e.g. a fork): building with a throwaway key."
           fi
 
-      - name: Build APK
+      # bundletool turns each app into an Android App Bundle (.aab) for Google Play as well.
+      - name: bundletool
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
+          echo "2d4ad908faea64047c1cc9cb747e6aa667c6ab192e09607bd16b67246a8cd6ae  $RUNNER_TEMP/bundletool.jar" | sha256sum -c -
+          echo "BUNDLETOOL=$RUNNER_TEMP/bundletool.jar" >> "$GITHUB_ENV"
+
+      - name: Build APK and AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
@@ -50,6 +57,7 @@ jobs:
             out/mk-car-launcher.apk
             out/mk-split-helper.apk
             out/mk-phone-launcher.apk
+            out/*.aab
 
       # A pushed tag (v2.0.0) publishes that release. A push to main publishes the version in
       # app/AndroidManifest.xml (versionName) once, if there is no release for it yet.
@@ -75,10 +83,15 @@ jobs:
           cp out/mk-car-launcher.apk "out/mk-car-launcher-$TAG.apk"
           cp out/mk-split-helper.apk "out/mk-split-helper-$TAG.apk"
           cp out/mk-phone-launcher.apk "out/mk-phone-launcher-$TAG.apk"
-          SUMS=$(cd out && sha256sum mk-*-launcher-$TAG.apk)
-          gh release create "$TAG" "out/mk-tv-launcher-$TAG.apk" "out/mk-car-launcher-$TAG.apk" "out/mk-split-helper-$TAG.apk" "out/mk-phone-launcher-$TAG.apk" --target "$GITHUB_SHA" --title "MK TV & Car Launcher ${TAG#v}" --notes "**Google TV / Android TV:** \`mk-tv-launcher-$TAG.apk\` (Android TV 9+). **Car head unit:** \`mk-car-launcher-$TAG.apk\` (Android 8+), and optionally \`mk-split-helper-$TAG.apk\` for the Split button (then switch on *MK Split Screen* in Accessibility). **Phone:** \`mk-phone-launcher-$TAG.apk\` (Android 8+, foldables too). Install steps are in the README.
-
-          SHA-256:
-          \`\`\`
-          $SUMS
-          \`\`\`"
+          for f in out/mk-*.aab; do b=$(basename "$f" .aab); cp "$f" "out/$b-$TAG.aab"; done
+          SUMS=$(cd out && sha256sum mk-*-$TAG.apk mk-*-$TAG.aab)
+          {
+            echo "**Google TV / Android TV:** \`mk-tv-launcher-$TAG.apk\` (Android TV 9+). **Car head unit:** \`mk-car-launcher-$TAG.apk\` (Android 8+), and optionally \`mk-split-helper-$TAG.apk\` (MK Car Helper: Split, Now Playing, notifications; switch on *MK Split Screen* in Accessibility). **Phone:** \`mk-phone-launcher-$TAG.apk\` (Android 8+, foldables too). The \`.aab\` files are the same apps as Android App Bundles for Google Play. Install steps are in the README."
+            echo
+            [ -f docs/whats-new.md ] && cat docs/whats-new.md && echo
+            echo "SHA-256:"
+            echo '```'
+            echo "$SUMS"
+            echo '```'
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" out/mk-*-"$TAG".apk out/mk-*-"$TAG".aab --target "$GITHUB_SHA" --title "MK TV & Car Launcher ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"

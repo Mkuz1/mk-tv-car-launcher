@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">MK Car Helper</string>
     <string name="split_service_name">MK Split Screen</string>
-    <string name="split_service_description">Lets MK TV &amp; Car Launcher open two apps side by side when you press Split on the car home screen, closes a split left behind after Home, and on the car home screen opens the launcher's Control Center instead of Android's notification shade. It uses the system split-screen, back and notification actions, checks whether the split-screen divider or the notification shade is shown, and notes which app is in front; it does not read what is on the screen.</string>
+    <string name="split_service_description">Lets MK TV &amp; Car Launcher open two apps side by side when you press Split on the car home screen, closes a split left behind after Home, and on the car home screen opens the launcher\'s Control Center instead of Android\'s notification shade. It uses the system split-screen, back and notification actions, checks whether the split-screen divider or the notification shade is shown, and notes which app is in front; it does not read what is on the screen.</string>
     <string name="media_service_name">MK Car Helper · Now Playing &amp; notifications</string>
 </resources>
