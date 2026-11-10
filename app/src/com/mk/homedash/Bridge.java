@@ -136,7 +136,7 @@ public class Bridge {
     public String carMotion() {
         try {
             return new JSONObject().put("bearing", CarLocation.bearing).put("speed", CarLocation.speed)
-                    .put("at", CarLocation.fixAt).toString();
+                    .put("at", CarLocation.fixAt).put("lat", CarLocation.lat).put("lon", CarLocation.lon).toString();
         } catch (Exception e) {
             return "null";
         }

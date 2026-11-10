@@ -162,10 +162,21 @@ public class MainActivity extends Activity {
      * next to a strip of the first app. With the MK Split Screen helper on, close the split and come
      * back full screen. Not while a split pair is being opened (Home briefly shows beside the first app).
      */
+    private final Runnable recheck = new Runnable() {
+        @Override public void run() { if (hasWindowFocus()) leaveSplit(); }
+    };
+
     private void leaveSplit() {
         if (!car || !Bridge.splitHelperOn(this)) return;
         long now = System.currentTimeMillis();
-        if (now - Bridge.splitLaunchAt < 8000) return;
+        long wait = Bridge.splitLaunchAt + 5000 - now;
+        if (wait > 0) {
+            // A pair is still opening (Home shows beside the first app for a moment): look again
+            // once it's had time, in case Home was pressed meanwhile.
+            getWindow().getDecorView().removeCallbacks(recheck);
+            getWindow().getDecorView().postDelayed(recheck, wait + 300);
+            return;
+        }
         if (inSplit()) {
             // Home is squeezed beside a docked app (this window is narrower than the screen): close
             // the split, then put Home back in front of the app that leaving it makes full screen.

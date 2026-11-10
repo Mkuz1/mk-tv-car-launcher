@@ -1431,19 +1431,67 @@
 
   // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
   // moved to the car again when it has gone a few hundred metres (or on the recenter button).
-  let mapAt = null;
-  // No "offline" note over the map: on some head units neither the page nor the app can tell
-  // reliably (they said offline while the map loaded). Offline, the map shows Google's own page.
+  // The map follows the car like a navigation map: centred on it (no pin; the car is the arrow in
+  // the middle), turned to the direction of travel, closer at low speed. Google's embedded map
+  // can't move by itself, so between loads the frame is slid under the arrow, and the next one
+  // loads unseen and fades in when the car has moved far enough. A tap opens Google Maps.
+  const mapS = { center: null, loading: null, z: 0, heading: 0, front: "mapA" };
+  const mpp = (lat, z) => (156543.03 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, z); // metres per pixel
+  function carPos() {
+    let m = null;
+    try { m = JSON.parse(TV.carMotion()); } catch (e) {}
+    const live = m && m.lat && Date.now() - m.at < 15000;
+    return { lat: live ? m.lat : C.latitude, lon: live ? m.lon : C.longitude, speed: live ? m.speed : 0, bearing: live ? m.bearing : -1 };
+  }
+  function sizeMap() {
+    const r = $("dvMap").getBoundingClientRect();
+    const d = Math.ceil(Math.hypot(r.width, r.height) / S) + 360; // turns freely, and slides 180 each way
+    $("dvMaps").style.setProperty("--map-d", d + "px");
+    return d;
+  }
+  function loadMap(p, z) {
+    const next = mapS.front === "mapA" ? "mapB" : "mapA", el = $(next);
+    mapS.loading = { lat: p.lat, lon: p.lon, z, id: next };
+    el.onload = () => {
+      if (!mapS.loading || mapS.loading.id !== next) return;
+      mapS.center = mapS.loading; mapS.z = z; mapS.loading = null;
+      $(mapS.front).classList.remove("on");
+      el.classList.add("on");
+      mapS.front = next;
+      // The new map is centred where the car was: jump there, don't slide.
+      const w = $("dvMaps");
+      w.style.transition = "none";
+      placeMap(carPos());
+      w.offsetWidth;
+      w.style.transition = "";
+    };
+    el.src = `https://maps.google.com/maps?ll=${p.lat.toFixed(6)},${p.lon.toFixed(6)}&t=h&z=${z}&hl=${lang}&output=embed`;
+  }
+  function placeMap(p) {
+    if (!mapS.center) return;
+    const k = mpp(mapS.center.lat, mapS.center.z) * 1.0;
+    const east = (p.lon - mapS.center.lon) * 111320 * Math.cos(p.lat * Math.PI / 180), north = (p.lat - mapS.center.lat) * 110540;
+    // Slide the map so the car stays at the arrow, then turn it so the road ahead points up.
+    $("dvMaps").style.transform = `rotate(${(-mapS.heading).toFixed(1)}deg) translate(${(-east / k).toFixed(1)}px, ${(north / k).toFixed(1)}px)`;
+  }
   function showMap(force = false) {
-    const here = [C.latitude, C.longitude];
-    const moved = !mapAt || Math.hypot((here[0] - mapAt[0]) * 111, (here[1] - mapAt[1]) * 111 * Math.cos(here[0] * Math.PI / 180)) > 0.4;
-    if (!force && !moved) return;
-    mapAt = here;
-    $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&t=h&z=16&hl=${lang}&output=embed`; // t=h: satellite with labels
+    sizeMap();
+    const p = carPos();
+    if (p.speed > 2 && p.bearing >= 0) {
+      // The short way round, so it never spins a whole turn.
+      const d = ((p.bearing - mapS.heading) % 360 + 540) % 360 - 180;
+      mapS.heading += d;
+    }
+    const kmh = p.speed * 3.6, z = kmh < 40 ? 17 : kmh < 90 ? 16 : 15;
+    const c = mapS.center, k = c ? mpp(c.lat, c.z) : 1;
+    const away = c ? Math.hypot((p.lon - c.lon) * 111320 * Math.cos(p.lat * Math.PI / 180), (p.lat - c.lat) * 110540) / k : Infinity;
+    // A new map when there's none yet, the zoom changes, or the car nears the edge of this one.
+    if (!mapS.loading && (force || !c || z !== c.z || away > 120)) loadMap(p, z);
+    placeMap(p);
   }
   addEventListener("online", () => { if (screen === 1) showMap(true); });
-  $("dvCenter").addEventListener("click", () => showMap(true));
-  $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
+  $("dvCenter").addEventListener("click", () => { mapS.heading = 0; showMap(true); });
+  $("dvTap").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
   function renderSpeed() {
     let m = null;
     try { m = JSON.parse(TV.carMotion()); } catch (e) {}
@@ -1537,7 +1585,7 @@
     if (paused || screen !== 1) return;
     renderProgress();
     renderSpeed();
-    if (++tickN % 10 === 0) showMap(); // follows the car, and the connection coming back
+    if (++tickN % 2 === 0) showMap(); // follows the car every 2 s
     if (tickN % 4 === 0) cmd("state"); // what's playing now, even if an app didn't announce a change
   }, 1000);
 
@@ -1890,5 +1938,6 @@
   window.onMedia();
   tick();
   setInterval(() => { if (!paused) tick(); }, 1000);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); renderGrid(); fitAzkarText(); placeAlert(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); renderGrid(); fitAzkarText(); placeAlert(); fitDock(); });
+  setTimeout(fitDock, 1200); // once the clock and icons are in
 })();

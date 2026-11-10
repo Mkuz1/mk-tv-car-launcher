@@ -81,7 +81,11 @@
       <!-- Drive (swipe left from Home), like CarPlay: a big Google map and Now Playing -->
       <div id="drive">
         <section id="dvMap" class="glass">
-          <iframe id="mapFrame" title="Map" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <!-- Follows the car like a navigation map: two frames take turns (the next loads unseen),
+               turned to the direction of travel; the car is the arrow in the middle. -->
+          <div class="dv-maps" id="dvMaps"><iframe class="dv-frame on" id="mapA" title="Map"></iframe><iframe class="dv-frame" id="mapB" title="Map"></iframe></div>
+          <div class="dv-car"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="rgba(26,115,232,.22)"/><path d="M24 8l12 30-12-7-12 7z" fill="#1A73E8" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg></div>
+          <button class="dv-tap" id="dvTap" aria-label="Open Google Maps"></button>
           <div class="dv-speed" id="dvSpeed" hidden><b id="dvKmh">0</b><span>km/h</span></div>
           <button class="dv-round" id="dvCenter" aria-label="Recenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
           <div class="dv-bar">

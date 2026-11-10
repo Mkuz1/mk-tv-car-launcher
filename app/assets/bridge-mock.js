@@ -92,7 +92,7 @@
     insets: () => JSON.stringify({ top: 32, bottom: 18, left: 0, right: 0 }),
     carLocation: () => JSON.stringify({ lat: 25.2048, lon: 55.2708, city: "Dubai", country: "AE", at: Date.now() }),
     schedulePrayerAlerts: (json) => console.log("alerts", json),
-    carMotion: () => JSON.stringify({ bearing: 120, speed: 14, at: Date.now() }),
+    carMotion: () => { const t = (Date.now() / 1000) % 600; return JSON.stringify({ bearing: 120, speed: 14, at: Date.now(), lat: 25.2048 - t * 0.00006, lon: 55.2708 + t * 0.0001 }); },
     openMaps: (uri) => { console.log("maps", uri); return true; },
     notifyTravelDua: (title) => console.log("travel dua", title),
     launchSplit: (a, b) => { console.log("split", a, b); return "tried"; },

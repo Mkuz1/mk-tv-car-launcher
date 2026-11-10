@@ -1,4 +1,8 @@
-### What's new (2.9.4)
+### What's new (2.9.5)
+
+- Car: the Drive map follows the car like a navigation map (centred on a car arrow, turned to the direction of travel, closer at low speed, new map areas load unseen); a tap opens Google Maps. Bigger Control Center, Split and Settings buttons. Home after a split pair is checked again once the pair has finished opening.
+
+### 2.9.4
 
 - Car: Home closes a split screen left behind (the launcher notices it's squeezed beside a docked app); the second app of a pair opens beside the first instead of as a second copy (Google Maps opened black); no more "No internet" note over the map.
 

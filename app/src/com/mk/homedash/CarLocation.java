@@ -40,6 +40,7 @@ final class CarLocation implements LocationListener {
     /** Latest fix, for the direction of travel: {bearing, speed (m/s), at} via TV.carMotion(). */
     static volatile float bearing = -1, speed = 0;
     static volatile long fixAt = 0;
+    static volatile double lat = 0, lon = 0; // live, for the Drive map following the car
 
     CarLocation(Activity activity) {
         this.activity = activity;
@@ -99,6 +100,8 @@ final class CarLocation implements LocationListener {
         bearing = l.hasBearing() ? l.getBearing() : -1;
         speed = l.hasSpeed() ? l.getSpeed() : 0;
         fixAt = System.currentTimeMillis();
+        lat = l.getLatitude();
+        lon = l.getLongitude();
         // The position itself is saved (and the city looked up) every 2 minutes or 1 km at most.
         if (saved != null && System.currentTimeMillis() - savedAt < SAVE_EVERY_MS && saved.distanceTo(l) < SAVE_DISTANCE_M) return;
         saved = l;

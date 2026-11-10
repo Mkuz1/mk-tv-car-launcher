@@ -446,12 +446,20 @@ body.drawer-open #drive { opacity: 0; pointer-events: none; }
 body.drawer-open #screenDots { opacity: 0; pointer-events: none; }
 
 #dvMap { position: relative; border-radius: 34px; overflow: hidden; min-width: 0; min-height: 0; background: #1b2229; }
-#mapFrame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #e5e3df; }
+/* The map frames are bigger than the panel (they turn with the car) and don't take touches:
+   a tap opens Google Maps, a swipe changes screen. */
+.dv-maps { position: absolute; left: 50%; top: 50%; width: var(--map-d, 2000px); height: var(--map-d, 2000px);
+  margin: calc(var(--map-d, 2000px) / -2) 0 0 calc(var(--map-d, 2000px) / -2); transition: transform 1.2s linear; will-change: transform; pointer-events: none; }
+.dv-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #3a3f36; opacity: 0; transition: opacity .5s; }
+.dv-frame.on { opacity: 1; }
+.dv-car { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; z-index: 1; pointer-events: none; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+.dv-car svg { width: 100%; height: 100%; display: block; }
+.dv-tap { position: absolute; inset: 0; z-index: 1; background: none; }
 /* Night: the same map, darkened (Google's embedded map has no night style of its own) */
-body.comfort-2 #mapFrame { filter: brightness(.7); } /* satellite: dimmed, not inverted */
-body.comfort-1 #mapFrame { filter: brightness(.85); }
+body.comfort-2 .dv-frame { filter: brightness(.7); }
+body.comfort-1 .dv-frame { filter: brightness(.85); }
 .dv-speed {
-  position: absolute; left: 18px; bottom: 96px; width: 92px; height: 92px; border-radius: 50%; z-index: 2;
+  position: absolute; z-index: 3 !important; left: 18px; bottom: 96px; width: 92px; height: 92px; border-radius: 50%; z-index: 2;
   display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
   background: var(--glass-solid); box-shadow: var(--glass-rim), 0 10px 24px rgba(0,0,0,.35);
 }
@@ -629,3 +637,10 @@ body.rtl .xf-steps { padding-left: 0; padding-right: 26px; }
 #dock.tight #dkRecents { gap: 6px; }
 #dock.tight .dk-btn.drawer { width: 72px; height: 72px; border-radius: 22px; }
 #dock.tight .dk-time #clock { font-size: 26px; }
+
+/* Control Center, Split and Settings: big targets for driving */
+#dkCC, #dkSplit, #dkSettings { width: 72px; height: 72px; }
+#dkCC svg, #dkSplit svg, #dkSettings svg { width: 36px; height: 36px; }
+#dock.tight #dkCC, #dock.tight #dkSplit, #dock.tight #dkSettings { width: 64px; height: 64px; }
+#dock.tight #dkCC svg, #dock.tight #dkSplit svg, #dock.tight #dkSettings svg { width: 32px; height: 32px; }
+#dkSettings { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
