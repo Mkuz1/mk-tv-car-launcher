@@ -162,7 +162,9 @@ public class Bridge {
         final Intent a = launchIntentFor(first), b = launchIntentFor(second);
         if (a == null || b == null) return "missing";
         a.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+        // No MULTIPLE_TASK: apps like Google Maps can't run a second copy of themselves (it opened
+        // black); the app's own task moves beside the first one instead.
+        b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
         final boolean helper = splitHelperOn();
         splitLaunchAt = System.currentTimeMillis(); // Home shows beside the first app for a moment: not a leftover
         main.post(new Runnable() {

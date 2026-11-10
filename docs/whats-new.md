@@ -1,4 +1,8 @@
-### What's new (2.9.3)
+### What's new (2.9.4)
+
+- Car: Home closes a split screen left behind (the launcher notices it's squeezed beside a docked app); the second app of a pair opens beside the first instead of as a second copy (Google Maps opened black); no more "No internet" note over the map.
+
+### 2.9.3
 
 - Car: Home and Work start Google Maps' own Home / Work shortcuts (your saved places); the "No internet" check is made by the app, not the page; the Cast button left the sidebar (it's in the Control Center); split screen gives slow head units more time; the hidden update card no longer peeks at the bottom of the screen.
 

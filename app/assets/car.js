@@ -1432,35 +1432,15 @@
   // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
   // moved to the car again when it has gone a few hundred metres (or on the recenter button).
   let mapAt = null;
-  // Online or not, tested for real: some head units' WebView (navigator.onLine) and even Android's
-  // network report say offline while the map loads fine. Google's "no content" address answers in a
-  // moment when the car is online; the banner shows only if that fails.
-  let probeAt = 0, probing = false;
-  function probe() {
-    if (probing || Date.now() - probeAt < 30000) return;
-    probing = true;
-    probeAt = Date.now();
-    const done = (ok) => {
-      probing = false;
-      const wasOff = !$("dvOffline").hidden;
-      $("dvOffline").hidden = ok;
-      if (ok && wasOff) showMap(true); // back online: load the map again
-    };
-    // Asked of the app (Android's own connection), not the page: some head units' WebView can't
-    // make this request though it loads the map fine.
-    const t = setTimeout(() => done(true), 12000); // no answer: don't claim it's offline
-    window.onOnline = (ok) => { clearTimeout(t); done(!!ok); };
-    try { TV.checkOnline(); } catch (e) { clearTimeout(t); done(true); }
-  }
+  // No "offline" note over the map: on some head units neither the page nor the app can tell
+  // reliably (they said offline while the map loaded). Offline, the map shows Google's own page.
   function showMap(force = false) {
-    probe();
     const here = [C.latitude, C.longitude];
     const moved = !mapAt || Math.hypot((here[0] - mapAt[0]) * 111, (here[1] - mapAt[1]) * 111 * Math.cos(here[0] * Math.PI / 180)) > 0.4;
     if (!force && !moved) return;
     mapAt = here;
     $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&t=h&z=16&hl=${lang}&output=embed`; // t=h: satellite with labels
   }
-  $("mapFrame").addEventListener("load", () => { probeAt = 0; probe(); });
   addEventListener("online", () => { if (screen === 1) showMap(true); });
   $("dvCenter").addEventListener("click", () => showMap(true));
   $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
