@@ -1,4 +1,8 @@
-### What's new (2.9.0 · phone 1.9.0)
+### What's new (2.9.1)
+
+- **Car:** installs again on head units that refused 2.8.3–2.9.0 ("There was a problem parsing the package"): the car app no longer asks for the install permission and carries only what 2.8.2 had. Its Update saves the checked APK in Download and opens your file manager to install it.
+
+### 2.9.0 · phone 1.9.0
 
 - **In-app updates** for the TV, car and phone apps (and MK Car Helper): a card offers each new version; Update downloads, checks and installs it with Android's confirmation. Car: Control Center → Updates; phone: Customize → Updates.
 - The Google Play bundles are now in one zip, so a device can't pick an `.aab` by mistake.

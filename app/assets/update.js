@@ -18,6 +18,9 @@
       permission: "Allow this app to install updates (the switch Android just opened), then tap Update again.",
       done: "Updated", error: (m) => `The update didn't finish: ${m}`, offline: "Couldn't check for updates. Is the device online?",
       current: (n, v) => `${n} ${v}`,
+      ready: "Ready to install", saved: (f) => `Saved in Download: ${f}`,
+      openIt: "Open it in your file manager (ES Explorer) to install, as you installed the app.",
+      storage: "Allow storage access (Android just asked), then tap Update again.",
     },
     ar: {
       title: "تحديث متوفر", latest: "لديك أحدث إصدار", checking: "جارٍ البحث عن تحديثات…",
@@ -26,6 +29,9 @@
       permission: "اسمح لهذا التطبيق بتثبيت التحديثات (من الإعداد الذي فتحه Android)، ثم اضغط تحديث مرة أخرى.",
       done: "تم التحديث", error: (m) => `لم يكتمل التحديث: ${m}`, offline: "تعذّر البحث عن تحديثات. هل الجهاز متصل بالإنترنت؟",
       current: (n, v) => `${n} ${v}`,
+      ready: "جاهز للتثبيت", saved: (f) => `حُفظ في مجلد التنزيلات: ${f}`,
+      openIt: "افتحه بمدير الملفات (ES Explorer) لتثبيته، كما ثبّت التطبيق أول مرة.",
+      storage: "اسمح بالوصول إلى التخزين (طلبه Android الآن)، ثم اضغط تحديث مرة أخرى.",
     },
   };
   const T = (k, ...a) => { const v = S[ar() ? "ar" : "en"][k]; return typeof v === "function" ? v(...a) : v; };
@@ -64,7 +70,7 @@
   card.setAttribute("dir", "auto");
   document.body.appendChild(card);
 
-  let info = null, queue = [], manual = false, focus = 1, btns = [];
+  let info = null, queue = [], manual = false, focus = 1, btns = [], saved = [];
   const open = () => card.classList.contains("on");
   function show(title, lines, buttons, busy = false) {
     card.innerHTML = `<div class="u-t"><i>↑</i><span>${esc(title)}</span></div>` + lines.map((l) => `<div class="u-l">${esc(l)}</div>`).join("") +
@@ -107,6 +113,7 @@
   function start() {
     // The helper first: updating this app ends it.
     queue = [];
+    saved = [];
     if (info && info.helper && info.helper.newer) queue.push("helper");
     if (info && info.self && info.self.newer) queue.push("self");
     next();
@@ -127,6 +134,13 @@
     } else if (s.state === "installing") {
       show(T("title"), [T("installing")], [[T("close"), hide]], true);
       if (card.querySelector(".u-bar b")) card.querySelector(".u-bar b").style.width = "100%";
+    } else if (s.state === "saved") {
+      // Car: the APK waits in Download for the file manager.
+      saved.push(String(s.detail || "").split("/").pop());
+      if (queue.length) return next();
+      show(T("ready"), saved.map((f) => T("saved", f)).concat(T("openIt")), [[T("close"), hide, true]]);
+    } else if (s.state === "storage") {
+      show(T("title"), [T("storage")], [[T("later"), hide], [T("update"), start, true]]);
     } else if (s.state === "permission") {
       show(T("title"), [T("permission")], [[T("later"), hide], [T("update"), start, true]]);
     } else if (s.state === "done") {

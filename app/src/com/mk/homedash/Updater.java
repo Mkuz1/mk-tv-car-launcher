@@ -46,8 +46,16 @@ final class Updater {
         this.web = web;
     }
 
-    /** Whether this build may update itself (the Play bundles leave the permission out). */
+    /**
+     * Whether this build updates itself: with the install permission (TV, phone), or on the car,
+     * whose head units refuse apps that ask for it: there the new APK is saved in Download and
+     * opened for you. The Play bundles have neither (Play updates them).
+     */
     boolean available() {
+        return canInstall() || "car".equals(Bridge.flavor(context));
+    }
+
+    private boolean canInstall() {
         try {
             String[] perms = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS).requestedPermissions;
             if (perms != null) for (String p : perms) if ("android.permission.REQUEST_INSTALL_PACKAGES".equals(p)) return true;
@@ -106,6 +114,7 @@ final class Updater {
     /** Downloads and installs the newest APK for pkg (this app, or the helper). */
     void install(final String pkg) {
         if (busy) return;
+        if (!canInstall()) { saveForManualInstall(pkg); return; }
         if (android.os.Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
             // Android asks once: allow this app to install updates.
             Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()))
@@ -133,6 +142,53 @@ final class Updater {
                 }
             }
         }).start();
+    }
+
+    /** Car: the checked APK goes to Download, then the file manager (or the Downloads app) opens. */
+    private void saveForManualInstall(final String pkg) {
+        if (android.os.Build.VERSION.SDK_INT < 29 && context instanceof android.app.Activity
+                && context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ((android.app.Activity) context).requestPermissions(new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 9);
+            status("storage", null);
+            return;
+        }
+        busy = true;
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    JSONObject v = new JSONObject(new String(fetch(VERSIONS), "UTF-8"));
+                    String tag = v.getString("tag");
+                    JSONObject a = v.getJSONObject("apps").getJSONObject(pkg);
+                    String file = a.getString("file"), sha = a.optString("sha256").toLowerCase(Locale.US);
+                    File dir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                    dir.mkdirs();
+                    File apk = new File(dir, file), part = new File(dir, file + ".part");
+                    download("https://github.com/" + REPO + "/releases/download/" + tag + "/" + file, part);
+                    if (!sha.isEmpty() && !sha.equals(sha256(part))) { part.delete(); throw new Exception("the download is damaged; try again"); }
+                    apk.delete();
+                    if (!part.renameTo(apk)) throw new Exception("can't save " + file);
+                    android.media.MediaScannerConnection.scanFile(context, new String[] {apk.getAbsolutePath()}, null, null);
+                    busy = false;
+                    status("saved", apk.getAbsolutePath());
+                    openFileManager();
+                } catch (Exception e) {
+                    busy = false;
+                    status("error", String.valueOf(e.getMessage()));
+                }
+            }
+        }).start();
+    }
+
+    /** ES File Explorer if it's there (head units often install with it), else the Downloads app. */
+    private void openFileManager() {
+        PackageManager pm = context.getPackageManager();
+        for (String fm : new String[] {"com.estrongs.android.pop", "com.estrongs.android.pop.pro"}) {
+            Intent i = pm.getLaunchIntentForPackage(fm);
+            if (i != null) { try { context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Exception ignored) { } }
+        }
+        try {
+            context.startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception ignored) { }
     }
 
     private void installApk(File apk) throws Exception {

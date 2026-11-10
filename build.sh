@@ -45,7 +45,8 @@ if [ ! -f "$KS" ]; then
     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=MK TV and Car Launcher" >/dev/null 2>&1
 fi
 
-# build <flavor> <manifest> <min-sdk> <apk name> [extra res dir: no web pages]
+# build <flavor> <manifest> <min-sdk> <apk name> [extra res dir [assets: keep the web pages]]
+# (the car gets nothing beyond the shared res: its head units refuse unusual packages)
 build() {
   local B=$OUT/build-$1 APK=$OUT/$4 EXTRA=() ASSETS=(-A app/assets)
   rm -rf "$B"; mkdir -p "$B"/{res,gen,classes,dex}
@@ -54,7 +55,7 @@ build() {
   if [ -n "${5:-}" ]; then
     "$BT/aapt2" compile --dir "$5" -o "$B/res/extra.zip"
     EXTRA=(-R "$B/res/extra.zip" --auto-add-overlay)
-    ASSETS=()
+    [ "${6:-}" = assets ] || ASSETS=()
   fi
   "$BT/aapt2" link -o "$B/unsigned.apk" -I "$JAR" \
     --manifest "$2" ${ASSETS[@]+"${ASSETS[@]}"} --java "$B/gen" \
@@ -84,7 +85,7 @@ build() {
 # Needs BUNDLETOOL=path/to/bundletool-all.jar; uses the dex and compiled resources build() made.
 bundle() {
   local B=$OUT/build-$1 AAB=$OUT/${4%.apk}.aab EXTRA=() ASSETS=(-A app/assets)
-  if [ -n "${5:-}" ]; then EXTRA=(-R "$B/res/extra.zip" --auto-add-overlay); ASSETS=(); fi
+  if [ -n "${5:-}" ]; then EXTRA=(-R "$B/res/extra.zip" --auto-add-overlay); [ "${6:-}" = assets ] || ASSETS=(); fi
   rm -rf "$B/base" "$B/base.zip" "$B/proto.zip"
   # Google Play updates its apps itself: no in-app updater (its permission) in the bundle.
   grep -v 'android.permission.REQUEST_INSTALL_PACKAGES' "$2" > "$B/play-manifest.xml"
@@ -105,11 +106,11 @@ mkdir -p "$OUT"
 case "${1:-all}" in
   tv)  build tv app/AndroidManifest.xml 28 mk-tv-launcher.apk ;;
   car) build car car/AndroidManifest.xml 26 mk-car-launcher.apk ;;
-  phone) build phone phone/AndroidManifest.xml 26 mk-phone-launcher.apk ;;
+  phone) build phone phone/AndroidManifest.xml 26 mk-phone-launcher.apk phone/res assets ;;
   helper) build helper helper/AndroidManifest.xml 24 mk-split-helper.apk helper/res ;;
   all) build tv app/AndroidManifest.xml 28 mk-tv-launcher.apk
        build car car/AndroidManifest.xml 26 mk-car-launcher.apk
-       build phone phone/AndroidManifest.xml 26 mk-phone-launcher.apk
+       build phone phone/AndroidManifest.xml 26 mk-phone-launcher.apk phone/res assets
        build helper helper/AndroidManifest.xml 24 mk-split-helper.apk helper/res ;;
   *)   echo "usage: ./build.sh [tv|car|phone|helper|all]" >&2; exit 1 ;;
 esac

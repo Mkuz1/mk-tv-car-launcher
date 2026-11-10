@@ -40,7 +40,7 @@ Two APKs are built from the same code:
 
 ## Updates
 
-From 2.9.0 (phone 1.9.0) every app updates itself: once a day it looks for a newer release and shows a Liquid Glass card (**Update** / **Later**); you can also check yourself (car: Control Center → **Updates**; phone: Edit → Customize → **Updates**). Update downloads the right APK for the device, checks it against the release's checksum, and opens Android's install screen; the first time, Android asks to allow the app to install updates. On the car it updates MK Car Helper too, first. Install the APK files (`.apk`), not the Google Play bundles: those are only in `google-play-bundles-….zip` and a device can't install them ("There was a problem parsing the package").
+From 2.9.0 (phone 1.9.0) every app updates itself: once a day it looks for a newer release and shows a Liquid Glass card (**Update** / **Later**); you can also check yourself (car: Control Center → **Updates**; phone: Edit → Customize → **Updates**). Update downloads the right APK for the device, checks it against the release's checksum, and opens Android's install screen; the first time, Android asks to allow the app to install updates. On the car the launcher doesn't ask for that permission (some head units then refuse to install it at all: "There was a problem parsing the package"), so Update saves the checked APK in **Download** and opens your file manager (ES Explorer) to install it, as you installed the app. On the car it updates MK Car Helper too, first. Install the APK files (`.apk`), not the Google Play bundles: those are only in `google-play-bundles-….zip` and a device can't install them ("There was a problem parsing the package").
 
 ## Car head unit (`mk-car-launcher.apk`)
 

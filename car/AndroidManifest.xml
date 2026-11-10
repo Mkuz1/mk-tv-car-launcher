@@ -6,8 +6,8 @@
      No screensaver in the car. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.mk.carlauncher"
-    android:versionCode="32"
-    android:versionName="2.9.0">
+    android:versionCode="33"
+    android:versionName="2.9.1">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -21,8 +21,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
-    <!-- In-app updates from GitHub releases (left out of the Google Play bundles). -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- No REQUEST_INSTALL_PACKAGES here: some head units refuse to install apps that ask for it
+         ("There was a problem parsing the package"). The car's updater saves the new APK in
+         Download and opens it for you to install instead. -->
     <!-- Prayer times follow the car (GPS); silent prayer banners over other apps -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
