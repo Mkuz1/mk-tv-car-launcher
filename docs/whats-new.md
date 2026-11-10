@@ -1,4 +1,9 @@
-### What's new in the car launcher (2.6 – 2.8.3)
+### What's new (2.9.0 · phone 1.9.0)
+
+- **In-app updates** for the TV, car and phone apps (and MK Car Helper): a card offers each new version; Update downloads, checks and installs it with Android's confirmation. Car: Control Center → Updates; phone: Customize → Updates.
+- The Google Play bundles are now in one zip, so a device can't pick an `.aab` by mistake.
+
+### Earlier in the car launcher (2.6 – 2.8.3)
 
 - **2.8.3 / phone 1.8.0:** much faster start: app icons are kept as files instead of being drawn again every time, and the phone launcher shows its wallpaper the moment Home is pressed.
 

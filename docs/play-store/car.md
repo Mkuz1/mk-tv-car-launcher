@@ -57,7 +57,7 @@ Optional: MK Car Helper (a separate small app) adds split screen, Now Playing de
 
 ## Before publishing on Google Play
 
-- Upload `mk-car-launcher-v2.8.1.aab` from the GitHub release (Release → Production → Create new release).
+- Upload `mk-car-launcher.aab` from `google-play-bundles-<version>.zip` on the GitHub release (the Play bundles leave out the in-app updater, which Play doesn't allow) (Release → Production → Create new release).
 - Play App Signing: the bundle is signed with the same key as the APKs; enrol it as your upload key.
 - Target API: the apps target Android 14 (API 34). If Play Console asks for a newer target level, ask for the target to be raised before uploading.
 - Permissions Play will ask about: location (prayer times, map, Qibla), "Modify system settings" (brightness), storage (File Transfer), and REQUEST_DELETE_PACKAGES (Delete in the app menu). MK Car Helper's accessibility and notification access need the Accessibility API declaration if you publish the helper too.

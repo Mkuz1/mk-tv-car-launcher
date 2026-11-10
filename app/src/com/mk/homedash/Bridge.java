@@ -481,6 +481,39 @@ public class Bridge {
         ((WebView) view).evaluateJavascript("window.onHotspot && window.onHotspot(" + (error == null ? "null" : JSONObject.quote(error)) + ")", null);
     }
 
+    /* In-app updates (Updater): GitHub releases, outside Google Play builds. */
+    private Updater updater;
+
+    private Updater updater() {
+        if (updater == null && view instanceof WebView) updater = new Updater(context, (WebView) view);
+        return updater;
+    }
+
+    /** {can: this build updates itself, version, code}. */
+    @JavascriptInterface
+    public String appVersion() {
+        try {
+            Updater u = updater();
+            return new JSONObject().put("can", u != null && u.available()).put("version", Updater.installedName(context, context.getPackageName()))
+                    .put("code", Updater.installedCode(context, context.getPackageName())).toString();
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    @JavascriptInterface
+    public void checkUpdate() {
+        Updater u = updater();
+        if (u != null && u.available()) u.check();
+    }
+
+    /** "self" (this app) or "helper" (MK Car Helper). */
+    @JavascriptInterface
+    public void installUpdate(String which) {
+        Updater u = updater();
+        if (u != null && u.available()) u.install("helper".equals(which) ? SplitReceiver.PACKAGE : context.getPackageName());
+    }
+
     /** When the last split-screen pair was opened (ms). */
     static volatile long splitLaunchAt = 0;
 

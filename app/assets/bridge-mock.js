@@ -66,6 +66,11 @@
       { key: "2", pkg: "com.google.android.apps.maps", app: "Maps", title: "Traffic on E11", text: "Heavy traffic ahead, 12 min delay", time: Date.now() - 1500000, clear: true },
       { key: "3", pkg: "com.spotify.music", app: "Spotify", title: "Al-Fatiha Recitation", text: "Mishary Rashid Alafasy", time: Date.now() - 4000000, clear: false },
     ]),
+    appVersion: () => JSON.stringify({ can: !/noupdate/.test(location.search), version: "2.8.3", code: 31 }),
+    checkUpdate: () => setTimeout(() => window.onUpdateInfo(/latest/.test(location.search)
+      ? { tag: "v2.8.3", self: { package: "com.mk.carlauncher", current: "2.8.3", name: "2.8.3", newer: false } }
+      : { tag: "v2.8.4", self: { package: "com.mk.carlauncher", current: "2.8.3", name: "2.8.4", newer: true }, helper: { package: "com.mk.splithelper", current: "1.3.1", name: "1.3.2", newer: true } }), 300),
+    installUpdate: (w) => { console.log("install", w); let p = 0; const t = setInterval(() => { p += 25; window.onUpdateStatus({ state: "downloading", detail: String(p) }); if (p >= 100) { clearInterval(t); window.onUpdateStatus({ state: "installing" }); setTimeout(() => window.onUpdateStatus({ state: "done" }), 400); } }, 100); },
     online: () => !/offline=1/.test(location.search),
     systemShade: () => console.log("system shade"),
     notifCommand: (c, k) => console.log("notif", c, k),

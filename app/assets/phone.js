@@ -64,6 +64,7 @@
       backup: "Layout backup", backupSub: "Your pages, folders and dock are also saved automatically to Downloads › MK Launcher",
       backupNow: "Back up", restore: "Restore", backedUp: "Saved to Downloads › MK Launcher", backupFail: "Couldn't save the backup",
       restored: "Layout restored", badBackup: "That file isn't an MK Launcher backup",
+      updates: "Updates", updatesSub: (v) => `MK Launcher ${v}`, checkNow: "Check",
       restoreTitle: "Restore your layout?", restoreSub: "If you used MK Launcher before, pick “MK Launcher layout.json” in Downloads › MK Launcher to get your pages, folders and dock back.",
       groups: ["Social", "Entertainment", "Photo & Video", "Productivity & Finance", "Travel", "News & Reading", "Games", "Utilities"],
     },
@@ -103,6 +104,7 @@
       backup: "نسخة احتياطية للتخطيط", backupSub: "تُحفظ صفحاتك ومجلداتك والشريط السفلي تلقائياً أيضاً في التنزيلات › MK Launcher",
       backupNow: "نسخ احتياطي", restore: "استعادة", backedUp: "تم الحفظ في التنزيلات › MK Launcher", backupFail: "تعذّر حفظ النسخة الاحتياطية",
       restored: "تمت استعادة التخطيط", badBackup: "هذا الملف ليس نسخة احتياطية من MK Launcher",
+      updates: "التحديثات", updatesSub: (v) => `MK Launcher ${v}`, checkNow: "تحقق",
       restoreTitle: "استعادة تخطيطك؟", restoreSub: "إذا استخدمت MK Launcher من قبل، اختر «MK Launcher layout.json» من التنزيلات › MK Launcher لاستعادة صفحاتك ومجلداتك.",
       groups: ["تواصل اجتماعي", "ترفيه", "صور وفيديو", "إنتاجية ومال", "سفر", "أخبار وقراءة", "ألعاب", "أدوات"],
     },
@@ -1643,7 +1645,9 @@
       `<div class="set-row"><div><div class="set-name">${T("alerts")}</div><div class="set-sub">${T("alertsSub")}</div></div><div class="seg" id="segAlerts"><button data-v="1" class="${alertsOn ? "on" : ""}">${T("on")}</button><button data-v="0" class="${alertsOn ? "" : "on"}">${T("off")}</button></div></div>` +
       `<div class="set-row col"><div><div class="set-name">${T("arrange")}</div><div class="set-sub">${T("arrangeSub")}</div></div><div class="set-btns" id="rowArrange"><button class="set-btn" data-m="abc">${T("byName")}</button><button class="set-btn" data-m="use">${T("byUse")}</button><button class="set-btn" data-m="new">${T("byNew")}</button>${undoL ? `<button class="set-btn ghost" data-m="undo">${T("undo")}</button>` : ""}</div></div>` +
       `<div class="set-row col"><div><div class="set-name">${T("newApps")}</div><div class="set-sub">${T("newAppsSub")}</div></div><div class="seg" id="segNew"><button data-v="abc" class="${newApps === "abc" ? "on" : ""}">${T("inOrder")}</button><button data-v="end" class="${newApps === "end" ? "on" : ""}">${T("atEnd")}</button></div></div>` +
+      (window.MKUpdate ? `<div class="set-row"><div><div class="set-name">${T("updates")}</div><div class="set-sub">${T("updatesSub", window.MKUpdate.version)}</div></div><button class="set-btn" id="rowUpdate">${T("checkNow")}</button></div>` : "") +
       `<div class="set-row col"><div><div class="set-name">${T("backup")}</div><div class="set-sub">${T("backupSub")}</div></div><div class="set-btns" id="rowBackup"><button class="set-btn" data-b="save">${T("backupNow")}</button><button class="set-btn ghost" data-b="load">${T("restore")}</button></div></div>`;
+    if ($("rowUpdate")) $("rowUpdate").addEventListener("click", () => { closeSheets(); window.MKUpdate.check(); });
     $("rowArrange").addEventListener("click", (e) => {
       const b = e.target.closest("button");
       if (!b) return;

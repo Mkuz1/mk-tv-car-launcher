@@ -62,7 +62,9 @@ public class MainActivity extends Activity {
             IntentFilter mf = new IntentFilter("com.mk.carlauncher.MEDIA_STATE");
             mf.addAction("com.mk.carlauncher.NOTIFS");
             mf.addAction("com.mk.carlauncher.OPEN_CC");
-            registerReceiver(media, mf);
+            // From the MK Car Helper (another app).
+            if (android.os.Build.VERSION.SDK_INT >= 33) registerReceiver(media, mf, 2 /* RECEIVER_EXPORTED */);
+            else registerReceiver(media, mf);
         }
         phone = "phone".equals(flavor);
         // No FLAG_KEEP_SCREEN_ON here: the screensaver must be able to start on top of Home.

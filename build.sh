@@ -86,8 +86,10 @@ bundle() {
   local B=$OUT/build-$1 AAB=$OUT/${4%.apk}.aab EXTRA=() ASSETS=(-A app/assets)
   if [ -n "${5:-}" ]; then EXTRA=(-R "$B/res/extra.zip" --auto-add-overlay); ASSETS=(); fi
   rm -rf "$B/base" "$B/base.zip" "$B/proto.zip"
+  # Google Play updates its apps itself: no in-app updater (its permission) in the bundle.
+  grep -v 'android.permission.REQUEST_INSTALL_PACKAGES' "$2" > "$B/play-manifest.xml"
   "$BT/aapt2" link --proto-format -o "$B/proto.zip" -I "$JAR" \
-    --manifest "$2" ${ASSETS[@]+"${ASSETS[@]}"} \
+    --manifest "$B/play-manifest.xml" ${ASSETS[@]+"${ASSETS[@]}"} \
     --min-sdk-version "$3" --target-sdk-version 34 "$B/res/res.zip" ${EXTRA[@]+"${EXTRA[@]}"}
   mkdir -p "$B/base/manifest" "$B/base/dex"
   (cd "$B/base" && unzip -q ../proto.zip && mv AndroidManifest.xml manifest/)

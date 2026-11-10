@@ -38,6 +38,10 @@ Two APKs are built from the same code:
 - Optional two-city world clock and your own logo text at the top.
 - Backgrounds: your **shared Google Photos albums** (new photos appear by themselves) mixed with 10 bundled nature scenes.
 
+## Updates
+
+From 2.9.0 (phone 1.9.0) every app updates itself: once a day it looks for a newer release and shows a Liquid Glass card (**Update** / **Later**); you can also check yourself (car: Control Center → **Updates**; phone: Edit → Customize → **Updates**). Update downloads the right APK for the device, checks it against the release's checksum, and opens Android's install screen; the first time, Android asks to allow the app to install updates. On the car it updates MK Car Helper too, first. Install the APK files (`.apk`), not the Google Play bundles: those are only in `google-play-bundles-….zip` and a device can't install them ("There was a problem parsing the package").
+
 ## Car head unit (`mk-car-launcher.apk`)
 
 A smooth, touch-first home screen for the car (made for 12" screens such as 1920×720), in Liquid Glass. Previews with placeholder app icons:

@@ -83,10 +83,26 @@ jobs:
           cp out/mk-car-launcher.apk "out/mk-car-launcher-$TAG.apk"
           cp out/mk-split-helper.apk "out/mk-split-helper-$TAG.apk"
           cp out/mk-phone-launcher.apk "out/mk-phone-launcher-$TAG.apk"
-          for f in out/mk-*.aab; do b=$(basename "$f" .aab); cp "$f" "out/$b-$TAG.aab"; done
-          SUMS=$(cd out && sha256sum mk-*-$TAG.apk mk-*-$TAG.aab)
+          # Google Play bundles in one zip, so a phone or head unit can't pick one up instead of an APK.
+          (cd out && zip -q "google-play-bundles-$TAG.zip" mk-*.aab)
+          # versions.json: what the apps' in-app updater reads (package -> version, file, SHA-256).
+          python3 - "$TAG" > out/versions.json <<'PY'
+          import hashlib, json, re, sys
+          tag = sys.argv[1]
+          apps = {}
+          for manifest, apk in [("app", "mk-tv-launcher"), ("car", "mk-car-launcher"), ("phone", "mk-phone-launcher"), ("helper", "mk-split-helper")]:
+              m = open(manifest + "/AndroidManifest.xml").read()
+              pkg = re.search(r'package="([^"]+)"', m).group(1)
+              f = f"{apk}-{tag}.apk"
+              apps[pkg] = {"code": int(re.search(r'android:versionCode="(\d+)"', m).group(1)),
+                           "name": re.search(r'android:versionName="([^"]+)"', m).group(1), "file": f,
+                           "sha256": hashlib.sha256(open("out/" + f, "rb").read()).hexdigest()}
+          print(json.dumps({"tag": tag, "apps": apps}, indent=1))
+          PY
+          cat out/versions.json
+          SUMS=$(cd out && sha256sum mk-*-$TAG.apk "google-play-bundles-$TAG.zip")
           {
-            echo "**Google TV / Android TV:** \`mk-tv-launcher-$TAG.apk\` (Android TV 9+). **Car head unit:** \`mk-car-launcher-$TAG.apk\` (Android 8+), and optionally \`mk-split-helper-$TAG.apk\` (MK Car Helper: Split, Now Playing, notifications; switch on *MK Split Screen* in Accessibility). **Phone:** \`mk-phone-launcher-$TAG.apk\` (Android 8+, foldables too). The \`.aab\` files are the same apps as Android App Bundles for Google Play. Install steps are in the README."
+            echo "**Google TV / Android TV:** \`mk-tv-launcher-$TAG.apk\` (Android TV 9+). **Car head unit:** \`mk-car-launcher-$TAG.apk\` (Android 8+), and optionally \`mk-split-helper-$TAG.apk\` (MK Car Helper: Split, Now Playing, notifications; switch on *MK Split Screen* in Accessibility). **Phone:** \`mk-phone-launcher-$TAG.apk\` (Android 8+, foldables too). \`google-play-bundles-$TAG.zip\` holds the same apps as Android App Bundles (.aab) for Google Play only: they can't be installed on a device. The apps can also update themselves (Android asks you to confirm). Install steps are in the README."
             echo
             [ -f docs/whats-new.md ] && cat docs/whats-new.md && echo
             echo "SHA-256:"
@@ -94,4 +110,4 @@ jobs:
             echo "$SUMS"
             echo '```'
           } > "$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" out/mk-*-"$TAG".apk out/mk-*-"$TAG".aab --target "$GITHUB_SHA" --title "MK TV & Car Launcher ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" out/mk-*-"$TAG".apk "out/google-play-bundles-$TAG.zip" out/versions.json --target "$GITHUB_SHA" --title "MK TV & Car Launcher ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"

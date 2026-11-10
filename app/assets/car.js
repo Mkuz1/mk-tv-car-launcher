@@ -56,7 +56,7 @@
       noNotifs: "No notifications", notifHelper: "To see your notifications here, install MK Car Helper (mk-split-helper.apk, 1.2 or later).",
       notifAccess: "To see your notifications here, allow MK Car Helper in Notification access.", now: "now",
       ago: (m) => (m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ago`), allowAll: "Brightness for all apps: allow",
-      androidPanel: "Android panel", files: "File Transfer", xfOn: "On: your phone can open the car's files", xfOff: "Off",
+      androidPanel: "Android panel", updates: "Updates", files: "File Transfer", xfOn: "On: your phone can open the car's files", xfOff: "Off",
       xfStep1: "Connect your phone to the <b>same Wi-Fi</b> as the car (your iPhone's hotspot works).",
       xfStep1Hot: (s, p) => `Join the car's Wi-Fi <b>${s}</b> (password <b>${p}</b>): scan the first code.`,
       xfStep2: "Scan the code with the <b>camera</b> and open the page.", xfStep3: "Browse the car's folders, <b>Upload here</b>, download, rename or delete.",
@@ -102,7 +102,7 @@
       noNotifs: "لا توجد إشعارات", notifHelper: "لعرض إشعاراتك هنا، ثبّت MK Car Helper ‏(mk-split-helper.apk الإصدار 1.2 أو أحدث).",
       notifAccess: "لعرض إشعاراتك هنا، اسمح لـ MK Car Helper في الوصول إلى الإشعارات.", now: "الآن",
       ago: (m) => (m < 60 ? `قبل ${m} د` : `قبل ${Math.floor(m / 60)} س`), allowAll: "سطوع لكل التطبيقات: سماح",
-      androidPanel: "لوحة Android", files: "نقل الملفات", xfOn: "يعمل: يمكن لهاتفك فتح ملفات السيارة", xfOff: "متوقف",
+      androidPanel: "لوحة Android", updates: "التحديثات", files: "نقل الملفات", xfOn: "يعمل: يمكن لهاتفك فتح ملفات السيارة", xfOff: "متوقف",
       xfStep1: "صِل هاتفك <b>بنفس شبكة Wi-Fi</b> المتصلة بها السيارة (نقطة اتصال الآيفون تعمل).",
       xfStep1Hot: (s, p) => `اتصل بشبكة السيارة <b>${s}</b> (كلمة المرور <b>${p}</b>): امسح الرمز الأول.`,
       xfStep2: "امسح الرمز <b>بالكاميرا</b> وافتح الصفحة.", xfStep3: "تصفّح مجلدات السيارة، <b>ارفع هنا</b>، نزّل، أعد التسمية أو احذف.",
@@ -1583,6 +1583,7 @@
   // The helper (1.3+) opens this instead of Android's shade pulled down over the home screen.
   window.openCC = () => { if (!has("xfer-open")) { closeDrawer(true); openCC(); } };
   $("ccSys").addEventListener("click", () => { closeCC(); try { TV.systemShade(); } catch (e) {} });
+  $("ccUpd").addEventListener("click", () => { closeCC(); if (window.MKUpdate) window.MKUpdate.check(); });
   // Pulled from the top edge: the sheet follows the finger.
   addEventListener("pointerdown", (e) => {
     if (ccOpen() || has("drawer-open") || has("picker-open") || has("qibla-open") || e.clientY / S > 80) return;
@@ -1644,6 +1645,7 @@
     const list = $("ccList");
     $("ccClear").hidden = !(acc.helper >= 3 && acc.access && notes.some((n) => n.clear));
     $("ccSys").hidden = !(acc.helper >= 4);
+    $("ccUpd").hidden = !window.MKUpdate;
     if (acc.helper < 3 || !acc.access) {
       list.innerHTML = `<div class="cc-empty">${escapeHtml(T(acc.helper < 3 ? "notifHelper" : "notifAccess"))}${acc.helper >= 3 ? `<br><button id="ccAllow">${escapeHtml(T("allow"))}</button>` : ""}</div>`;
       if ($("ccAllow")) $("ccAllow").addEventListener("click", () => { closeCC(); try { TV.openMediaAccess(); } catch (e) {} });
