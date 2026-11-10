@@ -1,4 +1,9 @@
-### What's new (2.9.1)
+### What's new (2.9.2 · helper 1.3.2)
+
+- Drive screen: satellite map; the "No internet" note shows only when Google really can't be reached; Home and Work open directions to the places saved in your Google Maps; Cast left the media panel.
+- Now Playing: next / previous work with YouTube (sent as media keys when the app has no skip), and the title follows a new clip within a few seconds.
+
+### 2.9.1
 
 - **Car:** installs again on head units that refused 2.8.3–2.9.0 ("There was a problem parsing the package"): the car app no longer asks for the install permission and carries only what 2.8.2 had. Its Update saves the checked APK in Download and opens your file manager to install it.
 

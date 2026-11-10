@@ -1145,8 +1145,9 @@
     if (f === "mosque") return maps(`geo:${near()}?q=${encodeURIComponent("mosque")}`);
     if (f === "fuel") return maps(`geo:${near()}?q=${encodeURIComponent("petrol station")}`);
     const p = favs()[f];
-    // Google Maps knows "Home" and "Work" as the places saved in your account.
-    if (!p) return maps("google.navigation:q=" + (f === "home" ? "Home" : "Work"));
+    // Directions in Google Maps to the places saved as Home and Work in your account (its
+    // directions link understands those two labels; a plain search for "Home" doesn't).
+    if (!p) return maps(`https://www.google.com/maps/dir/?api=1&destination=${f === "home" ? "Home" : "Work"}&travelmode=driving&dir_action=navigate`);
     maps("google.navigation:q=" + (p.addr ? encodeURIComponent(p.addr) : `${p.lat},${p.lon}`));
   }
   function favMenu(b) {
@@ -1424,19 +1425,33 @@
   // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
   // moved to the car again when it has gone a few hundred metres (or on the recenter button).
   let mapAt = null;
-  // The WebView's own navigator.onLine is wrong on some head units: ask Android.
-  const isOnline = () => { try { return TV.online(); } catch (e) { return navigator.onLine !== false; } };
+  // Online or not, tested for real: some head units' WebView (navigator.onLine) and even Android's
+  // network report say offline while the map loads fine. Google's "no content" address answers in a
+  // moment when the car is online; the banner shows only if that fails.
+  let probeAt = 0, probing = false;
+  function probe() {
+    if (probing || Date.now() - probeAt < 30000) return;
+    probing = true;
+    probeAt = Date.now();
+    const done = (ok) => {
+      probing = false;
+      const wasOff = !$("dvOffline").hidden;
+      $("dvOffline").hidden = ok;
+      if (ok && wasOff) showMap(true); // back online: load the map again
+    };
+    const t = setTimeout(() => done(false), 8000);
+    fetch("https://www.google.com/generate_204?mk=" + Date.now(), { mode: "no-cors", cache: "no-store" })
+      .then(() => { clearTimeout(t); done(true); }, () => { clearTimeout(t); done(false); });
+  }
   function showMap(force = false) {
-    const wasOff = !$("dvOffline").hidden;
-    $("dvOffline").hidden = isOnline();
-    if (wasOff && $("dvOffline").hidden) force = true; // back online: load it again
+    probe();
     const here = [C.latitude, C.longitude];
     const moved = !mapAt || Math.hypot((here[0] - mapAt[0]) * 111, (here[1] - mapAt[1]) * 111 * Math.cos(here[0] * Math.PI / 180)) > 0.4;
     if (!force && !moved) return;
     mapAt = here;
-    $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&z=15&hl=${lang}&output=embed`;
+    $("mapFrame").src = `https://maps.google.com/maps?q=${here[0].toFixed(5)},${here[1].toFixed(5)}&t=h&z=16&hl=${lang}&output=embed`; // t=h: satellite with labels
   }
-  $("mapFrame").addEventListener("load", () => { if ($("mapFrame").src && isOnline()) $("dvOffline").hidden = true; });
+  $("mapFrame").addEventListener("load", () => { probeAt = 0; probe(); });
   addEventListener("online", () => { if (screen === 1) showMap(true); });
   $("dvCenter").addEventListener("click", () => showMap(true));
   $("dvMaps").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
@@ -1504,8 +1519,7 @@
     const list = [];
     if (media.pkg && appByPkg(media.pkg)) list.push(media.pkg);
     for (const p of MEDIA_APPS) if (list.length < 4 && appByPkg(p) && !list.includes(p)) list.push(p);
-    $("mdSources").innerHTML = list.map((p) => { const a = appByPkg(p); return `<button class="md-src" data-p="${escapeHtml(p)}">${a.icon ? `<img src="${a.icon}" alt="">` : ""}</button>`; }).join("") +
-      `<button class="md-src cast" id="mdCast" aria-label="Cast">${CAST_ICON}</button>`;
+    $("mdSources").innerHTML = list.map((p) => { const a = appByPkg(p); return `<button class="md-src" data-p="${escapeHtml(p)}">${a.icon ? `<img src="${a.icon}" alt="">` : ""}</button>`; }).join("");
   }
   $("mdSources").addEventListener("click", (e) => {
     const b = e.target.closest(".md-src");
@@ -1516,8 +1530,9 @@
   });
   const cmd = (c, v = 0) => { try { TV.mediaCommand(c, v); } catch (e) {} };
   $("mdPlay").addEventListener("click", () => { const was = isPlaying(); cmd("toggle"); playingGuess = !was; $("mdPlay").innerHTML = playingGuess ? PAUSE_ICON : PLAY_ICON; });
-  $("mdPrev").addEventListener("click", () => cmd("previous"));
-  $("mdNext").addEventListener("click", () => cmd("next"));
+  const skip = (c) => { cmd(c); setTimeout(() => cmd("state"), 900); setTimeout(() => cmd("state"), 2500); };
+  $("mdPrev").addEventListener("click", () => skip("previous"));
+  $("mdNext").addEventListener("click", () => skip("next"));
   $("mdSeek").addEventListener("click", (e) => {
     if (!(media.duration > 0)) return;
     const r = $("mdSeek").querySelector(".md-bar").getBoundingClientRect();
@@ -1534,6 +1549,7 @@
     renderProgress();
     renderSpeed();
     if (++tickN % 10 === 0) showMap(); // follows the car, and the connection coming back
+    if (tickN % 4 === 0) cmd("state"); // what's playing now, even if an app didn't announce a change
   }, 1000);
 
   /* ---------------- Cast: AirPlay / Google Cast through a receiver app ---------------- */

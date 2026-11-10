@@ -271,6 +271,17 @@ public class MediaListener extends NotificationListenerService {
         return art;
     }
 
+    private static void key(MediaController c, int code) {
+        c.dispatchMediaButtonEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, code));
+        c.dispatchMediaButtonEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, code));
+    }
+
+    /** The launcher asks what's playing: look at the sessions again (some apps change track silently). */
+    void refresh() {
+        repick();
+        send();
+    }
+
     /** From the launcher: play, pause, toggle, next, previous, seek (ms), open. */
     void command(String cmd, long value) {
         MediaController c = current;
@@ -282,8 +293,16 @@ public class MediaListener extends NotificationListenerService {
             case "toggle": if (playing) t.pause(); else t.play(); break;
             case "play": t.play(); break;
             case "pause": t.pause(); break;
-            case "next": t.skipToNext(); break;
-            case "previous": t.skipToPrevious(); break;
+            // YouTube and others often don't offer skip in their session but do take the media
+            // keys (next video, previous / restart), so those go as keys to that app.
+            case "next":
+                if (s != null && (s.getActions() & PlaybackState.ACTION_SKIP_TO_NEXT) != 0) t.skipToNext();
+                else key(c, android.view.KeyEvent.KEYCODE_MEDIA_NEXT);
+                break;
+            case "previous":
+                if (s != null && (s.getActions() & PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0) t.skipToPrevious();
+                else key(c, android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+                break;
             case "seek": t.seekTo(Math.max(0, value)); break;
             case "open":
                 try {
