@@ -326,6 +326,17 @@ final class FileServer {
                 json(out, "{}");
                 return;
             }
+            case "/api/mapskey": {
+                // Car settings: the Google Maps key, pasted on the phone, for the Drive map.
+                if (!"POST".equals(r.method) || r.length < 0 || r.length > 200) { send(out, 400, "text/plain", "Bad key".getBytes(), null); return; }
+                ByteArrayOutputStream b = new ByteArrayOutputStream();
+                copy(r.body, b, r.length);
+                String k = b.toString("UTF-8").trim();
+                if (!k.isEmpty() && !k.matches("[A-Za-z0-9_\\-]{20,80}")) { send(out, 400, "text/plain", "That doesn't look like a Google Maps key".getBytes(), null); return; }
+                listener.onEvent(new JSONObject().put("what", "mapsKey").put("key", k).toString());
+                json(out, "{}");
+                return;
+            }
             case "/api/delete": {
                 File f = resolve(path);
                 boolean isRoot = false;

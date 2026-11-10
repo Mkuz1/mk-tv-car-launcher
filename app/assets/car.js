@@ -52,6 +52,8 @@
       castTitle: "Cast from your phone",
       castText: "AirPlay and Google Cast need a receiver app on the head unit: Apple and Google don't let apps like this one receive casts by themselves. Install AirScreen (AirPlay, Google Cast, Miracast and DLNA) and the Cast button opens it. Already have one (ZLink, Autokit, EasyConnection…)? It opens that.",
       castGet: "Get AirScreen",
+      endNav: "End", setPlaceFirst: (x) => `Hold ${x} to set its address once, then it navigates here`, arrived: "You have arrived",
+      routeFail: "Couldn't find a route", keyBad: "The Google Maps key didn't work; the simple map is back",
       notifications: "Notifications", clearAll: "Clear", cast: "Cast", split: "Split", settings: "Settings",
       noNotifs: "No notifications", notifHelper: "To see your notifications here, install MK Car Helper (mk-split-helper.apk, 1.2 or later).",
       notifAccess: "To see your notifications here, allow MK Car Helper in Notification access.", now: "now",
@@ -98,6 +100,8 @@
       castTitle: "البث من هاتفك",
       castText: "يحتاج AirPlay وGoogle Cast إلى تطبيق استقبال على شاشة السيارة، فلا تسمح Apple وGoogle لتطبيقات مثل هذا بالاستقبال بنفسها. ثبّت AirScreen ‏(AirPlay وGoogle Cast وMiracast وDLNA) وسيفتحه زر البث. إن كان لديك تطبيق آخر (ZLink أو Autokit أو EasyConnection…) فسيفتحه.",
       castGet: "تنزيل AirScreen",
+      endNav: "إنهاء", setPlaceFirst: (x) => `اضغط مطولاً على ${x} لتعيين العنوان مرة واحدة، ثم يبدأ التوجيه هنا`, arrived: "وصلت إلى وجهتك",
+      routeFail: "تعذّر إيجاد طريق", keyBad: "مفتاح خرائط Google لم يعمل؛ عادت الخريطة البسيطة",
       notifications: "الإشعارات", clearAll: "مسح", cast: "بث", split: "تقسيم", settings: "الإعدادات",
       noNotifs: "لا توجد إشعارات", notifHelper: "لعرض إشعاراتك هنا، ثبّت MK Car Helper ‏(mk-split-helper.apk الإصدار 1.2 أو أحدث).",
       notifAccess: "لعرض إشعاراتك هنا، اسمح لـ MK Car Helper في الوصول إلى الإشعارات.", now: "الآن",
@@ -1145,6 +1149,13 @@
     if (f === "mosque") return maps(`geo:${near()}?q=${encodeURIComponent("mosque")}`);
     if (f === "fuel") return maps(`geo:${near()}?q=${encodeURIComponent("petrol station")}`);
     const p = favs()[f];
+    // With the live map: navigate in the widget to the address set for Home / Work (Google
+    // doesn't share the places saved in your account with other apps; hold the button to set it).
+    if (mapS.api === "ready") {
+      if (p) { setScreen(1); return navigate(p.addr ? p.addr : { lat: p.lat, lng: p.lon }, T(f)); }
+      toast(T("setPlaceFirst", T(f)));
+      return favMenu(b);
+    }
     // Directions in Google Maps to the places saved as Home and Work in your account (its
     // directions link understands those two labels; a plain search for "Home" doesn't).
     if (!p) {
@@ -1431,67 +1442,135 @@
 
   // The map: Google's embedded map around the car, loaded when the Drive screen is first shown and
   // moved to the car again when it has gone a few hundred metres (or on the recenter button).
-  // The map follows the car like a navigation map: centred on it (no pin; the car is the arrow in
-  // the middle), turned to the direction of travel, closer at low speed. Google's embedded map
-  // can't move by itself, so between loads the frame is slid under the arrow, and the next one
-  // loads unseen and fades in when the car has moved far enough. A tap opens Google Maps.
-  const mapS = { center: null, loading: null, z: 0, heading: 0, front: "mapA" };
-  const mpp = (lat, z) => (156543.03 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, z); // metres per pixel
+  // The map. With a Google Maps key (Control Center → File Transfer → Car settings): Google's live
+  // map, satellite with the traffic layer, following the car smoothly and turned to the direction
+  // of travel, and navigation in the widget (route, next turn, distance, arrival, rerouting).
+  // Without a key: Google's embedded map around the car, reloaded only now and then.
+  const mapS = { heading: 0, loadedAt: null, front: "mapA", api: null, gmap: null, traffic: null };
   function carPos() {
     let m = null;
     try { m = JSON.parse(TV.carMotion()); } catch (e) {}
     const live = m && m.lat && Date.now() - m.at < 15000;
     return { lat: live ? m.lat : C.latitude, lon: live ? m.lon : C.longitude, speed: live ? m.speed : 0, bearing: live ? m.bearing : -1 };
   }
+  const distM = (a, b) => Math.hypot((b.lon - a.lon) * 111320 * Math.cos(a.lat * Math.PI / 180), (b.lat - a.lat) * 110540);
   function sizeMap() {
     const r = $("dvMap").getBoundingClientRect();
-    const d = Math.ceil(Math.hypot(r.width, r.height) / S) + 360; // turns freely, and slides 180 each way
-    $("dvMaps").style.setProperty("--map-d", d + "px");
-    return d;
+    $("dvMaps").style.setProperty("--map-d", Math.ceil(Math.hypot(r.width, r.height) / S) + 40 + "px"); // turns freely
   }
-  function loadMap(p, z) {
-    const next = mapS.front === "mapA" ? "mapB" : "mapA", el = $(next);
-    mapS.loading = { lat: p.lat, lon: p.lon, z, id: next };
-    el.onload = () => {
-      if (!mapS.loading || mapS.loading.id !== next) return;
-      mapS.center = mapS.loading; mapS.z = z; mapS.loading = null;
-      $(mapS.front).classList.remove("on");
-      el.classList.add("on");
-      mapS.front = next;
-      // The new map is centred where the car was: jump there, don't slide.
-      const w = $("dvMaps");
-      w.style.transition = "none";
-      placeMap(carPos());
-      w.offsetWidth;
-      w.style.transition = "";
+  function turn(p) {
+    if (p.speed > 2 && p.bearing >= 0) mapS.heading += ((p.bearing - mapS.heading) % 360 + 540) % 360 - 180;
+    $("dvMaps").style.transform = `rotate(${(-mapS.heading).toFixed(1)}deg)`;
+  }
+  const mapsKey = () => String(store.get("car.mapsKey", "") || "").trim();
+  function loadApi() {
+    if (mapS.api || !mapsKey()) return;
+    mapS.api = "loading";
+    window.mkMapsReady = () => {
+      mapS.api = "ready";
+      const p = carPos();
+      mapS.gmap = new google.maps.Map($("gmap"), {
+        center: { lat: p.lat, lng: p.lon }, zoom: 17, mapTypeId: "hybrid", disableDefaultUI: true, gestureHandling: "none",
+        keyboardShortcuts: false, clickableIcons: false, backgroundColor: "#2b3a2e",
+      });
+      mapS.traffic = new google.maps.TrafficLayer();
+      mapS.traffic.setMap(mapS.gmap);
+      document.body.classList.add("gmaps");
+      showMap(true);
     };
-    el.src = `https://maps.google.com/maps?ll=${p.lat.toFixed(6)},${p.lon.toFixed(6)}&t=h&z=${z}&hl=${lang}&output=embed`;
-  }
-  function placeMap(p) {
-    if (!mapS.center) return;
-    const k = mpp(mapS.center.lat, mapS.center.z) * 1.0;
-    const east = (p.lon - mapS.center.lon) * 111320 * Math.cos(p.lat * Math.PI / 180), north = (p.lat - mapS.center.lat) * 110540;
-    // Slide the map so the car stays at the arrow, then turn it so the road ahead points up.
-    $("dvMaps").style.transform = `rotate(${(-mapS.heading).toFixed(1)}deg) translate(${(-east / k).toFixed(1)}px, ${(north / k).toFixed(1)}px)`;
+    window.gm_authFailure = () => { // a wrong or unpermitted key
+      document.body.classList.remove("gmaps");
+      mapS.api = "failed";
+      toast(T("keyBad"));
+      showMap(true);
+    };
+    const sc = document.createElement("script");
+    sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(mapsKey())}&callback=mkMapsReady&language=${lang}&v=weekly`;
+    sc.async = true;
+    sc.onerror = () => { mapS.api = null; };
+    document.head.appendChild(sc);
   }
   function showMap(force = false) {
     sizeMap();
     const p = carPos();
-    if (p.speed > 2 && p.bearing >= 0) {
-      // The short way round, so it never spins a whole turn.
-      const d = ((p.bearing - mapS.heading) % 360 + 540) % 360 - 180;
-      mapS.heading += d;
+    turn(p);
+    loadApi();
+    if (mapS.api === "ready") {
+      const kmh = p.speed * 3.6, z = nav ? 17 : kmh < 40 ? 17 : kmh < 90 ? 16 : 15;
+      if (mapS.gmap.getZoom() !== z) mapS.gmap.setZoom(z);
+      mapS.gmap.panTo({ lat: p.lat, lng: p.lon });
+      if (nav) navTick(p);
+      return;
     }
-    const kmh = p.speed * 3.6, z = kmh < 40 ? 17 : kmh < 90 ? 16 : 15;
-    const c = mapS.center, k = c ? mpp(c.lat, c.z) : 1;
-    const away = c ? Math.hypot((p.lon - c.lon) * 111320 * Math.cos(p.lat * Math.PI / 180), (p.lat - c.lat) * 110540) / k : Infinity;
-    // A new map when there's none yet, the zoom changes, or the car nears the edge of this one.
-    if (!mapS.loading && (force || !c || z !== c.z || away > 120)) loadMap(p, z);
-    placeMap(p);
+    // Embedded map: a new one only when the car has gone well off it, at most every 45 s.
+    const c = mapS.loadedAt;
+    if (!force && c && (distM(c, p) < 900 || Date.now() - c.at < 45000)) return;
+    const next = mapS.front === "mapA" ? "mapB" : "mapA", el = $(next);
+    mapS.loadedAt = { lat: p.lat, lon: p.lon, at: Date.now() };
+    el.onload = () => { $(mapS.front).classList.remove("on"); el.classList.add("on"); mapS.front = next; };
+    el.src = `https://maps.google.com/maps?q=${p.lat.toFixed(5)},${p.lon.toFixed(5)}&t=h&layer=t&z=16&hl=${lang}&output=embed`;
   }
+
+  // Navigation in the widget (Google Maps API): the route on the map, the next turn on top, time,
+  // distance and arrival below; a new route when the car leaves it.
+  let nav = null, dirSvc = null, dirView = null;
+  const strip = (h) => { const d = document.createElement("div"); d.innerHTML = h; return d.textContent || ""; };
+  const fmtDist = (m) => (m >= 1000 ? (m / 1000).toFixed(m >= 10000 ? 0 : 1) + (lang === "ar" ? " كم" : " km") : Math.round(m / 10) * 10 + (lang === "ar" ? " م" : " m"));
+  function navigate(dest, name) {
+    if (mapS.api !== "ready") return false;
+    dirSvc = dirSvc || new google.maps.DirectionsService();
+    dirView = dirView || new google.maps.DirectionsRenderer({ map: mapS.gmap, preserveViewport: true,
+      polylineOptions: { strokeColor: "#4285F4", strokeWeight: 9, strokeOpacity: 0.95 } });
+    const p = carPos();
+    dirSvc.route({ origin: { lat: p.lat, lng: p.lon }, destination: dest, travelMode: "DRIVING",
+      drivingOptions: { departureTime: new Date(), trafficModel: "bestguess" } }, (res, status) => {
+      if (status !== "OK") { toast(T("routeFail")); return; }
+      dirView.setMap(mapS.gmap);
+      dirView.setDirections(res);
+      const leg = res.routes[0].legs[0];
+      nav = { dest, name, leg, steps: leg.steps, idx: 0, path: res.routes[0].overview_path, routedAt: Date.now() };
+      document.body.classList.add("navigating");
+      $("nvTop").hidden = $("nvBot").hidden = false;
+      startTrip();
+      navTick(carPos());
+    });
+    return true;
+  }
+  function endNav() {
+    nav = null;
+    if (dirView) dirView.setMap(null);
+    document.body.classList.remove("navigating");
+    $("nvTop").hidden = $("nvBot").hidden = true;
+  }
+  function navTick(p) {
+    const here = { lat: p.lat, lon: p.lon }, ll = (x) => ({ lat: x.lat(), lon: x.lng() });
+    // Past the end of a step: on to the next one.
+    while (nav.idx < nav.steps.length - 1 && distM(here, ll(nav.steps[nav.idx].end_location)) < 35) nav.idx++;
+    const st = nav.steps[nav.idx], toTurn = distM(here, ll(st.end_location));
+    const next = nav.steps[Math.min(nav.idx + 1, nav.steps.length - 1)];
+    let left = toTurn, secs = st.duration.value * Math.min(1, toTurn / Math.max(1, st.distance.value));
+    for (let i = nav.idx + 1; i < nav.steps.length; i++) { left += nav.steps[i].distance.value; secs += nav.steps[i].duration.value; }
+    if (distM(here, ll(nav.leg.end_location)) < 60) { toast(T("arrived")); return endNav(); }
+    $("nvDist").textContent = fmtDist(toTurn);
+    $("nvText").textContent = strip(nav.idx < nav.steps.length - 1 ? next.instructions : st.instructions);
+    const at = new Date(Date.now() + secs * 1000);
+    $("nvEta").innerHTML = `${escapeHtml(D.hm(at) + " " + ampm(at))}<small>${Math.round(secs / 60)} ${lang === "ar" ? "د" : "min"} · ${fmtDist(left)}</small>`;
+    // Off the route (no route point within 150 m): route again, at most every 30 s.
+    const onRoute = nav.path.some((q) => distM(here, ll(q)) < 150);
+    if (!onRoute && Date.now() - nav.routedAt > 30000) { nav.routedAt = Date.now(); navigate(nav.dest, nav.name); }
+  }
+  $("nvEnd").addEventListener("click", endNav);
+  $("nvApp").addEventListener("click", () => {
+    if (!nav) return;
+    const d = nav.leg.end_location;
+    maps(`google.navigation:q=${d.lat()},${d.lng()}`);
+  });
   addEventListener("online", () => { if (screen === 1) showMap(true); });
   $("dvCenter").addEventListener("click", () => { mapS.heading = 0; showMap(true); });
   $("dvTap").addEventListener("click", () => { let ok = false; try { ok = TV.openMaps(`geo:${near()}`); } catch (e) {} if (!ok) toast(T("noMaps")); });
+  // The key, pasted on the phone (File Transfer → Car settings), arrives here.
+  window.onMapsKey = (k) => { store.set("car.mapsKey", k || ""); location.reload(); };
+
   function renderSpeed() {
     let m = null;
     try { m = JSON.parse(TV.carMotion()); } catch (e) {}
@@ -1832,6 +1911,7 @@
     $("xfHotspot").textContent = T(hot ? "xfHotOff" : "xfHotOn");
   }
   window.onTransfer = (e) => {
+    if (e.what === "mapsKey") return window.onMapsKey && window.onMapsKey(e.key);
     xfLog.push(e.what === "received" ? T("xfReceived", e.name, e.folder, fsize(e.size)) : T("xfDeleted", e.name));
     if (e.what === "received") toast(T("xfReceived", e.name, e.folder, fsize(e.size)));
     if (has("xfer-open")) renderXfer();

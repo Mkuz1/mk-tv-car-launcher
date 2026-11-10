@@ -73,6 +73,14 @@
   .sheet button { display: block; width: 100%; height: 56px; border-radius: 16px; font-size: 18px; font-weight: 600; }
   .sheet button:active { background: rgba(255,255,255,.1); }
   .sheet .danger { color: #FF6961; }
+  .carset { margin: 18px 12px; border-radius: 22px; padding: 14px 16px; }
+  .carset summary { font-weight: 700; font-size: 17px; cursor: pointer; }
+  .carset label { display: block; margin-top: 12px; font-size: 14px; color: var(--ink-2); }
+  .carset input { width: 100%; margin-top: 6px; height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: rgba(255,255,255,.12); color: #fff; font-size: 16px; }
+  .cs-row { display: flex; gap: 10px; margin-top: 10px; }
+  .cs-row button { flex: 1; height: 46px; border-radius: 16px; background: #0A84FF; font-weight: 700; }
+  .cs-row button.ghost { flex: 0 0 auto; padding: 0 18px; background: rgba(255,255,255,.14); }
+  .cs-note { margin-top: 10px; font-size: 13px; color: var(--ink-3); line-height: 1.45; }
   .drop { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; background: rgba(10,132,255,.25); border: 3px dashed #0A84FF; }
   body.dragging .drop { display: flex; }
 </style>
@@ -87,6 +95,14 @@
   <div class="list glass" id="list"></div>
   <div class="free" id="free"></div>
 
+  <!-- Car settings: the Google Maps key for the Drive map (live map, traffic, navigation) -->
+  <details class="carset glass">
+    <summary>Car settings</summary>
+    <label for="mkey">Google Maps API key (Drive map: live map, traffic and navigation)</label>
+    <input id="mkey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza…">
+    <div class="cs-row"><button id="mkeySave">Save to car</button><button id="mkeyClear" class="ghost">Remove</button></div>
+    <div class="cs-note" id="mkeyNote">Make one at console.cloud.google.com: enable "Maps JavaScript API" and "Directions API", then Credentials → Create API key.</div>
+  </details>
   <div class="jobs" id="jobs"></div>
   <div class="bar glass">
     <button class="nf" id="newFolder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>Folder</button>
@@ -218,6 +234,15 @@
   addEventListener("dragover", (e) => { e.preventDefault(); document.body.classList.add("dragging"); });
   addEventListener("dragleave", (e) => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
   addEventListener("drop", (e) => { e.preventDefault(); document.body.classList.remove("dragging"); upload([...e.dataTransfer.files]); });
+  async function saveKey(k) {
+    try {
+      const r = await fetch("/api/mapskey?" + q({}), { method: "POST", body: k, headers: { "X-Key": key } });
+      if (!r.ok) throw new Error(await r.text());
+      $("mkeyNote").textContent = k ? "Saved: the car's Drive map now uses it." : "Removed: the car is back to the simple map.";
+    } catch (e) { $("mkeyNote").textContent = e.message; }
+  }
+  $("mkeySave").addEventListener("click", () => saveKey($("mkey").value.trim()));
+  $("mkeyClear").addEventListener("click", () => { $("mkey").value = ""; saveKey(""); });
   start().catch((e) => { $("list").innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
 })();
 </script>

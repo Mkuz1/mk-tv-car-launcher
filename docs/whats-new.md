@@ -1,4 +1,8 @@
-### What's new (2.9.5)
+### What's new (2.9.6)
+
+- Car: with your Google Maps API key (pasted on the phone in File Transfer → Car settings) the Drive map is Google's live satellite map with traffic, following the car smoothly, and Home / Work navigate in the widget (next turn, distance, arrival, rerouting). Without a key the simple map is back (it no longer reloads all the time).
+
+### 2.9.5
 
 - Car: the Drive map follows the car like a navigation map (centred on a car arrow, turned to the direction of travel, closer at low speed, new map areas load unseen); a tap opens Google Maps. Bigger Control Center, Split and Settings buttons. Home after a split pair is checked again once the pair has finished opening.
 
