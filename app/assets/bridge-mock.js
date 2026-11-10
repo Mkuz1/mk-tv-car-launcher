@@ -71,6 +71,8 @@
       ? { tag: "v2.8.3", self: { package: "com.mk.carlauncher", current: "2.8.3", name: "2.8.3", newer: false } }
       : { tag: "v2.8.4", self: { package: "com.mk.carlauncher", current: "2.8.3", name: "2.8.4", newer: true }, helper: { package: "com.mk.splithelper", current: "1.3.1", name: "1.3.2", newer: true } }), 300),
     installUpdate: (w) => { console.log("install", w); let p = 0; const t = setInterval(() => { p += 25; window.onUpdateStatus({ state: "downloading", detail: String(p) }); if (p >= 100) { clearInterval(t); if (/manual=1/.test(location.search)) return window.onUpdateStatus({ state: "saved", detail: "/storage/emulated/0/Download/" + (w === "helper" ? "mk-split-helper-v2.9.1.apk" : "mk-car-launcher-v2.9.1.apk") }); window.onUpdateStatus({ state: "installing" }); setTimeout(() => window.onUpdateStatus({ state: "done" }), 400); } }, 100); },
+    checkOnline: () => setTimeout(() => window.onOnline(!/offline=1/.test(location.search)), 200),
+    mapsShortcut: (w) => { console.log("maps shortcut", w); return !/noshortcut/.test(location.search); },
     online: () => !/offline=1/.test(location.search),
     systemShade: () => console.log("system shade"),
     notifCommand: (c, k) => console.log("notif", c, k),

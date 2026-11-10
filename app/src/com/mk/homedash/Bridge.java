@@ -185,13 +185,13 @@ public class Bridge {
         if (helper) {
             main.postDelayed(new Runnable() {
                 @Override public void run() { toggleSplit(context); }
-            }, 900);
+            }, 1400); // the first app must be up before it can be docked (slow head units)
         }
         main.postDelayed(new Runnable() {
             @Override public void run() {
                 try { context.startActivity(b); } catch (Exception e) { Log.w("HomeDash", "split second: " + e); }
             }
-        }, helper ? 1900 : 900);
+        }, helper ? 2800 : 1100);
         return helper ? "split" : "tried";
     }
 
@@ -1253,6 +1253,64 @@ public class Bridge {
                 new Intent(Settings.ACTION_WIRELESS_SETTINGS),
                 new Intent(Settings.ACTION_SETTINGS),
                 new Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.MainSettings"));
+    }
+
+    /** Reaches Google from the app (not the page); the page hears window.onOnline(true|false). */
+    @JavascriptInterface
+    public void checkOnline() {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                boolean ok = false;
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL("https://www.google.com/generate_204").openConnection();
+                    c.setConnectTimeout(6000);
+                    c.setReadTimeout(6000);
+                    int code = c.getResponseCode();
+                    ok = code > 0 && code < 500;
+                    c.disconnect();
+                } catch (Exception ignored) { }
+                final boolean answer = ok;
+                main.post(new Runnable() {
+                    @Override public void run() {
+                        if (view instanceof WebView) ((WebView) view).evaluateJavascript("window.onOnline && window.onOnline(" + answer + ")", null);
+                    }
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * Car: Google Maps' own "Home" / "Work" shortcut (the ones its icon offers when held), which
+     * navigates to the places saved in your account. Only the default Home app may start another
+     * app's shortcuts. false if there's no such shortcut.
+     */
+    @JavascriptInterface
+    public boolean mapsShortcut(String which) {
+        if (android.os.Build.VERSION.SDK_INT < 25) return false;
+        try {
+            android.content.pm.LauncherApps la = (android.content.pm.LauncherApps) context.getSystemService(Context.LAUNCHER_APPS_SERVICE);
+            if (la == null || !la.hasShortcutHostPermission()) return false;
+            android.content.pm.LauncherApps.ShortcutQuery q = new android.content.pm.LauncherApps.ShortcutQuery();
+            q.setPackage("com.google.android.apps.maps");
+            q.setQueryFlags(android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+                    | android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC
+                    | android.content.pm.LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED);
+            java.util.List<android.content.pm.ShortcutInfo> list = la.getShortcuts(q, android.os.Process.myUserHandle());
+            if (list == null) return false;
+            String[] words = "home".equals(which) ? new String[] {"home", "منزل", "البيت"} : new String[] {"work", "عمل"};
+            for (android.content.pm.ShortcutInfo si : list) {
+                String hay = (si.getId() + " " + si.getShortLabel() + " " + si.getLongLabel()).toLowerCase(java.util.Locale.ROOT);
+                for (String w : words) {
+                    if (hay.contains(w)) {
+                        la.startShortcut(si, null, null);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w("HomeDash", "maps shortcut: " + e);
+        }
+        return false;
     }
 
     /** Whether Android has a network with internet (Wi-Fi, mobile data, Ethernet...). */

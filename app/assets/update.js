@@ -44,12 +44,12 @@
 
   const css = document.createElement("style");
   css.textContent = `
-    #mkUpd { position: fixed; left: 50%; bottom: max(24px, 4vh); z-index: 9999; width: min(560px, calc(100vw - 32px)); transform: translate(-50%, 140%);
-      transition: transform .45s cubic-bezier(.2,.8,.2,1); border-radius: 28px; padding: 20px 22px 16px; color: #fff;
+    #mkUpd { position: fixed; left: 50%; bottom: max(24px, 4vh); z-index: 9999; width: min(560px, calc(100vw - 32px)); transform: translate(-50%, calc(100% + 80px)); visibility: hidden;
+      transition: transform .45s cubic-bezier(.2,.8,.2,1), visibility 0s .45s; border-radius: 28px; padding: 20px 22px 16px; color: #fff;
       font: 500 clamp(15px, 2.1vh, 22px)/1.35 Inter, Roboto, system-ui, sans-serif;
       background: linear-gradient(160deg, rgba(255,255,255,.20), rgba(255,255,255,.07) 45%, rgba(255,255,255,.05)), rgba(26,32,40,.92);
       box-shadow: inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 0 0 1px rgba(255,255,255,.14), 0 18px 46px rgba(0,0,0,.45); }
-    #mkUpd.on { transform: translate(-50%, 0); }
+    #mkUpd.on { transform: translate(-50%, 0); visibility: visible; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
     #mkUpd .u-t { font-weight: 800; font-size: 1.25em; display: flex; align-items: center; gap: 10px; }
     #mkUpd .u-t i { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(180deg, #F4D597, #DDB066); flex: 0 0 auto;
       display: flex; align-items: center; justify-content: center; color: #1B1407; font-style: normal; font-size: 18px; }

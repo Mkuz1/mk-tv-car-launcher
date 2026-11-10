@@ -1147,7 +1147,14 @@
     const p = favs()[f];
     // Directions in Google Maps to the places saved as Home and Work in your account (its
     // directions link understands those two labels; a plain search for "Home" doesn't).
-    if (!p) return maps(`https://www.google.com/maps/dir/?api=1&destination=${f === "home" ? "Home" : "Work"}&travelmode=driving&dir_action=navigate`);
+    if (!p) {
+      // Google Maps' own Home / Work shortcuts (as when you hold its icon) go to the places saved
+      // in your account; the launcher, as Home app, may start them.
+      let ok = false;
+      try { ok = TV.mapsShortcut(f); } catch (e) {}
+      if (ok) return startTrip();
+      return maps(`https://www.google.com/maps/dir/?api=1&destination=${f === "home" ? "Home" : "Work"}&travelmode=driving&dir_action=navigate`);
+    }
     maps("google.navigation:q=" + (p.addr ? encodeURIComponent(p.addr) : `${p.lat},${p.lon}`));
   }
   function favMenu(b) {
@@ -1439,9 +1446,11 @@
       $("dvOffline").hidden = ok;
       if (ok && wasOff) showMap(true); // back online: load the map again
     };
-    const t = setTimeout(() => done(false), 8000);
-    fetch("https://www.google.com/generate_204?mk=" + Date.now(), { mode: "no-cors", cache: "no-store" })
-      .then(() => { clearTimeout(t); done(true); }, () => { clearTimeout(t); done(false); });
+    // Asked of the app (Android's own connection), not the page: some head units' WebView can't
+    // make this request though it loads the map fine.
+    const t = setTimeout(() => done(true), 12000); // no answer: don't claim it's offline
+    window.onOnline = (ok) => { clearTimeout(t); done(!!ok); };
+    try { TV.checkOnline(); } catch (e) { clearTimeout(t); done(true); }
   }
   function showMap(force = false) {
     probe();
@@ -1564,7 +1573,6 @@
     if (list.length > 1) return showPop(list.map((a) => [a.label, ICON.split, () => { closePop(); launch(a); }]), anchor || null);
     document.body.classList.add("cast-open");
   }
-  $("dkCast").addEventListener("click", () => cast($("dkCast")));
   $("ciClose").addEventListener("click", () => document.body.classList.remove("cast-open"));
   $("castInfo").addEventListener("click", (e) => { if (e.target === $("castInfo")) document.body.classList.remove("cast-open"); });
   $("ciGet").addEventListener("click", () => {

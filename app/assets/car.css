@@ -508,7 +508,7 @@ body.portrait .md-art { max-height: 150px; }
 .md-src:active { transform: scale(.9); }
 body.rtl .md-hint, body.rtl .md-app { font-family: "Amiri", serif; letter-spacing: 0; }
 
-#dkCC, #dkCast { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+#dkCC { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
 #castInfo { position: absolute; inset: 0; z-index: 8; background: rgba(0,0,0,0.42); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
 body.cast-open #castInfo { opacity: 1; pointer-events: auto; }
 body.cast-open .ci-panel { transform: scale(1); }

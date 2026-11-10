@@ -1,4 +1,8 @@
-### What's new (2.9.2 · helper 1.3.2)
+### What's new (2.9.3)
+
+- Car: Home and Work start Google Maps' own Home / Work shortcuts (your saved places); the "No internet" check is made by the app, not the page; the Cast button left the sidebar (it's in the Control Center); split screen gives slow head units more time; the hidden update card no longer peeks at the bottom of the screen.
+
+### 2.9.2 · helper 1.3.2
 
 - Drive screen: satellite map; the "No internet" note shows only when Google really can't be reached; Home and Work open directions to the places saved in your Google Maps; Cast left the media panel.
 - Now Playing: next / previous work with YouTube (sent as media keys when the app has no skip), and the title follows a new clip within a few seconds.

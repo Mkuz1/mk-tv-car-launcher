@@ -156,7 +156,7 @@ public class MainActivity extends Activity {
     private void leaveSplit() {
         if (!car || !Bridge.splitHelperOn(this)) return;
         long now = System.currentTimeMillis();
-        if (now - Bridge.splitLaunchAt < 6000) return;
+        if (now - Bridge.splitLaunchAt < 8000) return;
         // Helper 1.1+: it sees the split-screen divider itself (Home often doesn't know it's beside
         // a docked app), closes the split and brings Home back.
         if (Bridge.helperVersion(this) >= 2) {
