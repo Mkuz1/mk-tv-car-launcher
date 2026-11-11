@@ -19,7 +19,8 @@ public class MainActivity extends Activity {
     private WebView web;
     private CarLocation location; // car and phone: GPS for prayer times
     private boolean car, phone;
-    private long unsplitAt;
+    private long unsplitAt, homeIntentAt;
+    private final java.util.ArrayList<Long> restores = new java.util.ArrayList<>();
 
     // App installed, removed or updated: the page re-reads the app list next time it shows.
     private final BroadcastReceiver packages = new BroadcastReceiver() {
@@ -49,6 +50,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        homeIntentAt = System.currentTimeMillis(); // started by a Home press (or at boot): never restore a split now
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
         f.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -111,11 +113,15 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         if (phone && AppWidgets.instance != null) AppWidgets.instance.start();
+        if (car && web != null) { web.onResume(); web.resumeTimers(); }
     }
 
     @Override
     protected void onStop() {
         if (phone && AppWidgets.instance != null) AppWidgets.instance.stop();
+        // Car: the page (and its live map) sleeps while other apps are on screen, leaving the head
+        // unit's memory and processor to them, so Android doesn't close one of a split pair.
+        if (car && web != null) { web.onPause(); web.pauseTimers(); }
         super.onStop();
     }
 
@@ -178,17 +184,13 @@ public class MainActivity extends Activity {
             return;
         }
         if (inSplit()) {
-            // Home is squeezed beside a docked app (this window is narrower than the screen): close
-            // the split, then put Home back in front of the app that leaving it makes full screen.
+            // Home is squeezed beside a docked app (this window is narrower than the screen).
             if (now - unsplitAt < 3000) return;
             unsplitAt = now;
-            Bridge.toggleSplit(this);
-            getWindow().getDecorView().postDelayed(new Runnable() {
-                @Override public void run() {
-                    startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                            .setPackage(getPackageName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                }
-            }, 700);
+            // No Home press brought it here: Android closed the second app of the pair (usually to
+            // free memory) and Home fell into its place. Put that app back beside the first one.
+            if (now - homeIntentAt > 4000 && restoreSplit(now)) return;
+            closeSplit();
             return;
         }
         // Not narrower, but a docked app may still sit beside Home: helper 1.1+ looks for the
@@ -197,6 +199,52 @@ public class MainActivity extends Activity {
             sendBroadcast(new Intent(SplitReceiver.CHECK).setClassName(SplitReceiver.PACKAGE, SplitReceiver.class.getName()));
         }
     }
+
+    /** Opens the pair's second app again next to the docked one; at most 3 times in 10 minutes. */
+    private boolean restoreSplit(long now) {
+        while (!restores.isEmpty() && now - restores.get(0) > 600000) restores.remove(0);
+        if (restores.size() >= 3) return false; // it keeps closing: give up and leave split screen
+        Intent b = Bridge.splitSecondIntent(this);
+        if (b == null) return false;
+        restores.add(now);
+        Bridge.splitLaunchAt = now;
+        try { startActivity(b); return true; } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Close the split, then put Home back in front of the app that leaving it makes full screen.
+     * Android 9 ignores the split-screen action while Home sits beside a docked app ("minimized"),
+     * so if Home is still squeezed a moment later: bring the pair's second app back first (which
+     * ends the minimized state), close the split from there, then come Home.
+     */
+    private void closeSplit() {
+        final View d = getWindow().getDecorView();
+        Bridge.toggleSplit(this);
+        d.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (inSplit()) {
+                    final Intent b = Bridge.splitSecondIntent(MainActivity.this);
+                    if (b != null) {
+                        Bridge.splitLaunchAt = System.currentTimeMillis();
+                        try { startActivity(b); } catch (Exception ignored) { }
+                        d.postDelayed(new Runnable() {
+                            @Override public void run() { Bridge.toggleSplit(MainActivity.this); d.postDelayed(goHome, 900); }
+                        }, 1500);
+                        return;
+                    }
+                }
+                goHome.run();
+            }
+        }, 900);
+    }
+
+    private final Runnable goHome = new Runnable() {
+        @Override public void run() {
+            unsplitAt = System.currentTimeMillis();
+            startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                    .setPackage(getPackageName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }
+    };
 
     /** In split screen, or (on firmwares that don't say so) drawn much narrower than the screen. */
     private boolean inSplit() {
@@ -212,6 +260,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         // Home pressed while already home: jump back to the top row.
         js("window.onTvHome && window.onTvHome()");
+        homeIntentAt = System.currentTimeMillis(); // Home pressed: leave split screen, don't restore it
         leaveSplit();
     }
 

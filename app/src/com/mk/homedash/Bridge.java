@@ -167,6 +167,10 @@ public class Bridge {
         b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
         final boolean helper = splitHelperOn();
         splitLaunchAt = System.currentTimeMillis(); // Home shows beside the first app for a moment: not a leftover
+        // Remembered so MainActivity can put the second app back if Android closes it (low memory)
+        // and Home falls into its place beside the first.
+        context.getSharedPreferences("split", 0).edit().putString("second", second)
+                .putLong("at", splitLaunchAt).apply();
         main.post(new Runnable() {
             @Override public void run() {
                 try {
@@ -195,6 +199,15 @@ public class Bridge {
             }
         }, helper ? 2800 : 1100);
         return helper ? "split" : "tried";
+    }
+
+    /** The second app of the last split pair opened from Home, ready to open beside the first again (or null). */
+    static Intent splitSecondIntent(Context context) {
+        android.content.SharedPreferences sp = context.getSharedPreferences("split", 0);
+        String pkg = sp.getString("second", null);
+        if (pkg == null || System.currentTimeMillis() - sp.getLong("at", 0) > 12 * 3600000L) return null;
+        Intent b = context.getPackageManager().getLaunchIntentForPackage(pkg);
+        return b == null ? null : b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
     }
 
     /** True when the MK Split Screen helper app is installed and switched on in Accessibility. */

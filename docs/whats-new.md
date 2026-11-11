@@ -1,4 +1,8 @@
-### What's new (2.9.6)
+### What's new (2.9.7)
+
+- Car: split screen stays together. If Android closes the second app after a while (to free memory) and Home falls into its place, the launcher opens that app again beside the first. The home screen and its map now sleep while other apps are on screen, so the apps in front get the memory. Pressing Home still leaves split screen, now also on Android 9 when Home was squeezed next to a strip of the first app.
+
+### 2.9.6
 
 - Car: with your Google Maps API key (pasted on the phone in File Transfer → Car settings) the Drive map is Google's live satellite map with traffic, following the car smoothly, and Home / Work navigate in the widget (next turn, distance, arrival, rerouting). Without a key the simple map is back (it no longer reloads all the time).
 
