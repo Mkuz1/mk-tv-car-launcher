@@ -20,6 +20,7 @@ Apple TV-style home screen and Islamic dashboard screensaver for Google TV / And
 
 ## Recent changes
 
+- 2026-11-27: **Website security headers** (MK Apps security review): CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy and Permissions-Policy for every page, in `site/_headers`. The CSP lists exactly the hosts the site uses (Google Fonts, GitHub API, Cloudflare Web Analytics); if you add a new script, font, embed or API host, add it to the CSP or it will be blocked.
 - 2026-11-26: Website added (real screenshots, live download links); auto-deploy (PR #1); koussa.net invite (PR #2); SEO with the real app icon as favicon (PR #3). Listed on koussa.net as one of the two new apps.
 - 2026-11-11: Car 2.9.7 keeps split screen together.
 
